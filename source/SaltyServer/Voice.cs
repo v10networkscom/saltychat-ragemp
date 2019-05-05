@@ -2,12 +2,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SaltyServer
 {
     public class Voice : GTANetworkAPI.Script
     {
-        #region Props
+        #region Properties
+        public static string ServerUniqueIdentifier { get; private set; }
+        public static string RequiredUpdateBranch { get; private set; }
         public static string MinimumPluginVersion { get; private set; }
         public static string SoundPack { get; private set; }
         public static string IngameChannel { get; private set; }
@@ -21,6 +24,8 @@ namespace SaltyServer
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.ResourceStart)]
         public void OnResourceStart()
         {
+            Voice.ServerUniqueIdentifier = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "ServerUniqueIdentifier");
+            Voice.RequiredUpdateBranch = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "RequiredUpdateBranch");
             Voice.MinimumPluginVersion = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "MinimumPluginVersion");
             Voice.SoundPack = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SoundPack");
             Voice.IngameChannel = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "IngameChannel");
@@ -30,20 +35,67 @@ namespace SaltyServer
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.PlayerConnected)]
         public void OnPlayerConnected(GTANetworkAPI.Client client)
         {
-            client.SetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, Guid.NewGuid().ToString());
-            client.SetSharedData(SaltyShared.SharedData.Voice_VoiceRange, 10f);
+            client.SetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, Voice.GetTeamSpeakName());
+            client.SetSharedData(SaltyShared.SharedData.Voice_VoiceRange, SaltyShared.SharedData.VoiceRanges[1]);
 
-            client.TriggerEvent(SaltyShared.Event.Voice_Initialize, Voice.MinimumPluginVersion, Voice.SoundPack, Voice.IngameChannel, Voice.IngameChannel);
+            client.TriggerEvent(SaltyShared.Event.Voice_Initialize, Voice.ServerUniqueIdentifier, Voice.RequiredUpdateBranch, Voice.MinimumPluginVersion, Voice.SoundPack, Voice.IngameChannel, Voice.IngameChannelPassword);
         }
 
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.PlayerDisconnected)]
-        public void OnPlayerDisconnected(GTANetworkAPI.Client client)
+        public void OnPlayerDisconnected(GTANetworkAPI.Client client, GTANetworkAPI.DisconnectionType disconnectionType, string reason)
         {
             Voice.RemovePlayerRadioChannel(client);
+
+            if (!client.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName))
+                return;
+
+            // Broken on some systems
+            //GTANetworkAPI.NAPI.ClientEvent.TriggerClientEventForAll(SaltyShared.Event.Player_Disconnected, tsName);
+
+            foreach (GTANetworkAPI.Client cl in GTANetworkAPI.NAPI.Pools.GetAllPlayers())
+            {
+                cl.TriggerEvent(SaltyShared.Event.Player_Disconnected, tsName);
+            }
         }
         #endregion
 
         #region Remote Events
+        [GTANetworkAPI.RemoteEvent(SaltyShared.Event.Voice_RejectedVersion)]
+        public void OnRejectedVersion(GTANetworkAPI.Client client, string updateBranch, string version)
+        {
+            if (String.IsNullOrWhiteSpace(Voice.RequiredUpdateBranch) && String.IsNullOrWhiteSpace(Voice.MinimumPluginVersion))
+                return;
+
+            if (!String.IsNullOrWhiteSpace(Voice.RequiredUpdateBranch) && updateBranch != Voice.RequiredUpdateBranch)
+                client.SendNotification($"[Salty Chat] Required update branch: {Voice.RequiredUpdateBranch} | Your update branch: {updateBranch}");
+            else
+                client.SendNotification($"[Salty Chat] Required version: {Voice.MinimumPluginVersion} | Your version: {version}");
+
+            client.Kick();
+        }
+
+        [GTANetworkAPI.RemoteEvent(SaltyShared.Event.Voice_IsTalking)]
+        public void OnPlayerTalking(GTANetworkAPI.Client client, bool isTalking)
+        {
+#warning There seems to be an issue where the "client"-object is not correctly referenced on the client, remove workaround if the issue is resolved
+
+            if (!client.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName))
+                return;
+
+            foreach (GTANetworkAPI.Client cl in GTANetworkAPI.NAPI.Pools.GetAllPlayers())
+            {
+                cl.TriggerEvent(SaltyShared.Event.Voice_IsTalking, tsName, isTalking);
+            }
+
+            //GTANetworkAPI.NAPI.ClientEvent.TriggerClientEventForAll(SaltyShared.Event.Voice_IsTalking, client, isTalking)
+        }
+
+        [GTANetworkAPI.RemoteEvent(SaltyShared.Event.Voice_SetVoiceRange)]
+        public void OnSetVoiceRange(GTANetworkAPI.Client client, float voiceRange)
+        {
+            client.SetSharedData(SaltyShared.SharedData.Voice_VoiceRange, voiceRange);
+        }
+
         [GTANetworkAPI.RemoteEvent(SaltyShared.Event.Voice_TalkingOnRadio)]
         public void OnPlayerTalkingOnRadio(GTANetworkAPI.Client client, string radioChannel, bool isSending)
         {
@@ -52,12 +104,6 @@ namespace SaltyServer
         #endregion
 
         #region Commands
-        [GTANetworkAPI.Command("setvoicerange")]
-        public void OnSetVoiceRange(GTANetworkAPI.Client client, float voiceRange)
-        {
-            client.SetSharedData(SaltyShared.SharedData.Voice_VoiceRange, voiceRange);
-        }
-
         [GTANetworkAPI.Command("setradiochannel")]
         public void OnSetRadioChannel(GTANetworkAPI.Client client, string radioChannel)
         {
@@ -69,9 +115,36 @@ namespace SaltyServer
 
             client.TriggerEvent(SaltyShared.Event.Voice_SetRadioChannel, radioChannel);
         }
+
+        [GTANetworkAPI.Command("leaveradiochannel")]
+        public void OnLeaveRadioChannel(GTANetworkAPI.Client client)
+        {
+            Voice.RemovePlayerRadioChannel(client);
+
+            client.TriggerEvent(SaltyShared.Event.Voice_SetRadioChannel, String.Empty);
+        }
         #endregion
 
         #region Methods
+        internal static string GetTeamSpeakName()
+        {
+            string name;
+            List<GTANetworkAPI.Client> playerList = GTANetworkAPI.NAPI.Pools.GetAllPlayers();
+
+            do
+            {
+                name = Guid.NewGuid().ToString().Replace("-", "");
+
+                if (name.Length > 30)
+                {
+                    name = name.Remove(29, name.Length - 30);
+                }
+            }
+            while (playerList.Any(p => p.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName) && tsName == name));
+
+            return name;
+        }
+
         /// <summary>
         /// Returns all radio channels the client is currently in
         /// </summary>
@@ -136,9 +209,10 @@ namespace SaltyServer
                 if (Voice.PlayersTalkingOnRadioChannels[radioChannel].Count == 0)
                     Voice.PlayersTalkingOnRadioChannels.Remove(radioChannel);
 
-                foreach (GTANetworkAPI.Client radioClient in Voice.RadioChannels[radioChannel])
+                if (client.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName))
                 {
-                    radioClient.TriggerEvent(SaltyShared.Event.Voice_TalkingOnRadio, client.GetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName), false);
+                    foreach (GTANetworkAPI.Client radioClient in Voice.RadioChannels[radioChannel])
+                        radioClient.TriggerEvent(SaltyShared.Event.Voice_TalkingOnRadio, tsName, false);
                 }
             }
 
@@ -156,7 +230,7 @@ namespace SaltyServer
 
         public static void SetPlayerSendingOnRadioChannel(GTANetworkAPI.Client client, string radioChannel, bool isSending)
         {
-            if (!Voice.RadioChannels.ContainsKey(radioChannel) || !Voice.RadioChannels[radioChannel].Contains(client))
+            if (!Voice.RadioChannels.ContainsKey(radioChannel) || !Voice.RadioChannels[radioChannel].Contains(client) || !client.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName))
                 return;
 
             if (isSending && !Voice.PlayersTalkingOnRadioChannels[radioChannel].Contains(client))
@@ -165,7 +239,7 @@ namespace SaltyServer
 
                 foreach (GTANetworkAPI.Client radioClient in Voice.RadioChannels[radioChannel])
                 {
-                    radioClient.TriggerEvent(SaltyShared.Event.Voice_TalkingOnRadio, client.GetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName), true);
+                    radioClient.TriggerEvent(SaltyShared.Event.Voice_TalkingOnRadio, tsName, true);
                 }
             }
             else if (!isSending && Voice.PlayersTalkingOnRadioChannels[radioChannel].Contains(client))
@@ -174,7 +248,7 @@ namespace SaltyServer
 
                 foreach (GTANetworkAPI.Client radioClient in Voice.RadioChannels[radioChannel])
                 {
-                    radioClient.TriggerEvent(SaltyShared.Event.Voice_TalkingOnRadio, client.GetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName), false);
+                    radioClient.TriggerEvent(SaltyShared.Event.Voice_TalkingOnRadio, tsName, false);
                 }
             }
         }

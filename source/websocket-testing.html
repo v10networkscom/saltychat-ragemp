@@ -1,0 +1,320 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+    <title>websocket client</title>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js"></script>
+    <script type="text/javascript">
+        var inc = null;
+        var wsImpl = null;
+
+        function connect(){
+            inc.append("connecting to server ..<br/>");
+
+            window.ws = new wsImpl('ws://localhost:8088/');
+
+            ws.onmessage = function (evt) {
+                if ($("#pingResponse").prop("checked"))
+                {
+                    let jsonObject = JSON.parse(evt.data);
+
+                    if (jsonObject.Command == 1)
+                    {
+                        ws.send(JSON.stringify({ Command: 2, ServerUniqueIdentifier: jsonObject.ServerUniqueIdentifier }));
+
+                        return;
+                    }
+                }
+
+                inc.append(evt.data + '<br/>');
+            };
+
+            ws.onopen = function () {
+                inc.append('.. connection open<br/>');
+            };
+
+            ws.onclose = function () {
+                inc.append('.. connection closed<br/>');
+            }
+        }
+
+        $(document).ready(function() {
+            inc = $('#incomming');
+            wsImpl = window.WebSocket || window.MozWebSocket;
+
+            $("#connect").on('click', function(){
+                inc.innerHTML += '.. connection closed<br/>';
+                if (typeof ws !== "undefined" && (ws.readyState == 0 || ws.readyState == 1)){
+                    ws.close();
+                }
+
+                connect();
+            });
+            
+            $("#disconnect").on('click', function(){
+                if (typeof ws !== "undefined" && (ws.readyState != 2 && ws.readyState != 3)){
+                    ws.close();
+                }
+            });
+            
+            $("#sendText").submit(function(e){
+                e.preventDefault();
+                let input = $(this).children("#text");
+                ws.send(input.val());
+                input.val("");
+            });
+            
+            $("#sendCommand").submit(function(e){
+                e.preventDefault();
+                let input = $(this).children("#command");
+                let object = { Command: input.val() };
+
+                ws.send(JSON.stringify(object));
+                input.val("");
+            });
+            
+            $("#initiate").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let channelId = $(this).children("#channelId");
+                let channelPassword = $(this).children("#channelPassword");
+                let name = $(this).children("#name");
+                let soundpack = $(this).children("#soundpack");
+
+                let object = { Command: "Initiate", Parameter: { ServerUniqueIdentifier: serverUid.val(), ChannelId: channelId.val(), ChannelPassword: channelPassword.val(), Name: name.val(), SoundPack: soundpack.val() } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                channelId.val("");
+                channelPassword.val("");
+                name.val("");
+                soundpack.val("");
+            });
+            
+            $("#selfUpdate").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let positionX = $(this).children("#positionX");
+                let positionY = $(this).children("#positionY");
+                let positionZ = $(this).children("#positionZ");
+                let rotation = $(this).children("#rotation");
+
+                let object = { Command: "SelfStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, Rotation: parseFloat(rotation.val()) } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                positionX.val("");
+                positionY.val("");
+                positionZ.val("");
+                rotation.val("");
+            });
+            
+            $("#playerStateUpdate").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let name = $(this).children("#name");
+                let positionX = $(this).children("#positionX");
+                let positionY = $(this).children("#positionY");
+                let positionZ = $(this).children("#positionZ");
+                let voiceRange = $(this).children("#voiceRange");
+                let phone = $(this).children("#onPhone");
+                let radio = $(this).children("#onRadio");
+                let alive = $(this).children("#alive");
+
+                let object = { Command: "PlayerStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, VoiceRange: parseFloat(voiceRange.val()), IsOnPhone: phone.prop("checked"), IsOnRadio: radio.prop("checked"), IsAlive: alive.prop("checked") } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                name.val("");
+                positionX.val("");
+                positionY.val("");
+                positionZ.val("");
+                voiceRange.val("");
+            });
+            
+            $("#removePlayer").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let name = $(this).children("#name");
+
+                let object = { Command: "RemovePlayer", ServerUniqueIdentifier: serverUid.val(), Parameter: name.val() };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                name.val("");
+            });
+            
+            $("#playSound").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let filename = $(this).children("#filename");
+                let handle = $(this).children("#handle");
+                let loop = $(this).children("#loop");
+
+                let object = { Command: "PlaySound", ServerUniqueIdentifier: serverUid.val(), Parameter: { Filename: filename.val(), IsLoop: loop.prop("checked"), Handle: handle.val() } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                filename.val("");
+                handle.val("");
+            });
+            
+            $("#stopSound").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let handle = $(this).children("#handle");
+
+                let object = { Command: "StopSound", ServerUniqueIdentifier: serverUid.val(), Parameter: handle.val() };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                handle.val("");
+            });
+        });
+    </script>
+</head>
+<body style="font-family:Arial, Helvetica, sans-serif">
+    <button id="connect">Connect</button>
+    <button id="disconnect">Disconnect</button>
+    <label>Respond to ping:</label>
+    <input type="checkbox" id="pingResponse" />
+
+    <p>
+        <form id="sendText">
+            <label>Send Text:</label>
+            <input id="text" placeholder="Text to send" required />
+        </form>
+    </p>
+
+    <p>
+        <form id="sendCommand">
+            <label>Send Command:</label>
+            <input id="command" placeholder="Command" required />
+        </form>
+    </p>
+
+    <p>
+        <form id="initiate">
+            <b>Initiate</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Channel ID</label>
+            <input id="channelId" placeholder="122" required />
+            
+            <label>Channel Password</label>
+            <input id="channelPassword" placeholder="quickscoperz" />
+            
+            <label>Name</label>
+            <input id="name" placeholder="Rudolf" required />
+            
+            <label>Soundpack</label>
+            <input id="soundpack" value="default" placeholder="default" required />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="selfUpdate">
+            <b>Self Update</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>X</label>
+            <input id="positionX" placeholder="1.0" required />
+            
+            <label>Y</label>
+            <input id="positionY" placeholder="1.0" required />
+            
+            <label>Z</label>
+            <input id="positionZ" placeholder="1.0" required />
+            
+            <label>Rotation</label>
+            <input id="rotation" placeholder="1.0" required />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="playerStateUpdate">
+            <b>Player State Update</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Player Name</label>
+            <input id="name" placeholder="Rudolf" required />
+            
+            <label>X</label>
+            <input id="positionX" placeholder="1.0" required />
+            
+            <label>Y</label>
+            <input id="positionY" placeholder="1.0" required />
+            
+            <label>Z</label>
+            <input id="positionZ" placeholder="1.0" required />
+            
+            <label>Voice Range</label>
+            <input id="voiceRange" placeholder="1.0" required />
+            
+            <label>On Phone</label>
+            <input type="checkbox" id="onPhone" />
+            
+            <label>On Radio</label>
+            <input type="checkbox" id="onRadio" />
+            
+            <label>Alive</label>
+            <input type="checkbox" id="alive" checked />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="removePlayer">
+            <b>Remove Player</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Player Name</label>
+            <input id="name" placeholder="Rudolf" required />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="playSound">
+            <b>Play Sound</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Filename</label>
+            <input id="filename" placeholder="onMicClick" required />
+            
+            <label>Handle</label>
+            <input id="handle" />
+            
+            <label>Loop</label>
+            <input type="checkbox" id="loop" checked />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="stopSound">
+            <b>Stop Sound</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Filename/Handle</label>
+            <input id="handle" placeholder="onMicClick" required />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+    
+    <pre id="incomming"></pre>
+</body>
+</html>
