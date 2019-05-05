@@ -1,0 +1,158 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<title>Salty Chat Ajax</title>
+	
+	<script	src="http://code.jquery.com/jquery-3.3.1.min.js"
+	integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+	crossorigin="anonymous"></script>
+</head>
+<body style="font-family:Arial; font-size:26px; color:white; outline:thin; outline-color:black; text-shadow: 1px 1px 1px black">
+	<div id="demo">
+	</div>
+	
+	<script>
+        let baseUrl = "http://127.0.0.1:13337/";
+		let failureCount = 0;
+        let successCount = 0;
+        let commandQueue = [];
+        let queueIsRunning = false;
+
+        let isPluginRunning = false;
+        let pluginData = {
+            version: "", isIngame: false, isTalking: false, isMicrophoneMuted: false, isSoundMuted: false, isConnectedToAnyServer: false, command: "", parameters: ""
+        };
+
+        pingPlugin();
+
+		function addCommand(cmd)
+		{
+            commandQueue.push(cmd);
+            runCommand();
+		}
+		
+		function runCommand()
+        {
+            if (commandQueue.length == 0 || queueIsRunning) return;
+			
+			queueIsRunning = true;
+			loadDoc(commandQueue[0]);
+		}
+	
+		function loadDoc(url)
+		{
+			$.ajax({
+                url: baseUrl + url,
+				async: true,
+				timeout: 80,
+				success: onSuccess,
+				error: onError
+			});
+		}
+		
+		function onError(jqXHR, textStatus, errorThrown)
+        {
+            if (isPluginRunning)
+                updatePluginState(false);
+
+            failureCount++;
+            updateHtml();
+			
+			queueIsRunning = false;
+			runCommand();
+		}
+		
+		function onSuccess(data, textStatus, jqXHR)
+        {
+            if (commandQueue.length > 0)
+                commandQueue.splice(0, 1);
+
+            let response;
+
+            try {
+                response = JSON.parse(jqXHR.responseText);
+            }
+            catch (err) {
+                mp.trigger('onTsPluginParseError');
+                return;
+            }
+
+            if (!isPluginRunning && response.isConnectedToAnyServer)
+                updatePluginState(true, response.version);
+            else if (isPluginRunning && !response.isConnectedToAnyServer)
+                updatePluginState(false, response.version);
+            else if (!isPluginRunning && !response.isConnectedToAnyServer)
+                pingPlugin();
+
+            if (response.isIngame != pluginData.isIngame)
+                updateIngameState(response.isIngame);
+
+            if (response.isTalking != pluginData.isTalking)
+                updateTalkingState(response.isTalking);
+
+            if (response.isMicrophoneMuted != pluginData.isMicrophoneMuted)
+                updateMicrophoneState(response.isMicrophoneMuted);
+
+            if (response.isSoundMuted != pluginData.isSoundMuted)
+                updateSoundState(response.isSoundMuted);
+
+            pluginData = response;
+
+            successCount++;
+            updateHtml();
+
+			queueIsRunning = false;
+			runCommand();
+        }
+
+        function pingPlugin() {
+            addCommand("");
+        }
+
+        function updatePluginState(state, version) {
+            isPluginRunning = state;
+            mp.trigger('onTsPluginStateUpdate', state, version);
+
+            if (!state) {
+                commandQueue.length = 0;
+                pingPlugin();
+            }
+        }
+
+        function updateIngameState(state) {
+            mp.trigger('onTsPluginIngameUpdate', state);
+
+            if (!state) {
+                commandQueue.length = 0;
+                pingPlugin();
+            }
+        }
+
+        function updateTalkingState(state) {
+            mp.trigger('onTsPluginTalkingUpdate', state);
+        }
+
+        function updateMicrophoneState(state) {
+            mp.trigger('onTsPluginMicMutedUpdate', state);
+        }
+
+        function updateSoundState(state) {
+            mp.trigger('onTsPluginSoundMutedUpdate', state);
+        }
+
+        function updateHtml()
+        {
+            let message;
+
+            if (isPluginRunning) {
+                message = `isIngame: ${pluginData.isIngame} | isTalking: ${ pluginData.isTalking } | isMicMuted: ${ pluginData.isMicrophoneMuted } | isSoundMuted: ${ pluginData.isSoundMuted }`;
+            }
+            else {
+                message = "Salty Chat ist nicht aktiv, oder Du bist auf keinem TeamSpeak Server!";
+            }
+
+            document.getElementById("demo").innerHTML = `success: ${successCount}</br>failure: ${failureCount}</br>${message}`;
+        }
+	</script>
+</body>
+</html>

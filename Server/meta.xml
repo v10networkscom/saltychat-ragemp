@@ -1,0 +1,12 @@
+﻿<meta>
+  <info name="Salty Chat" author="Saltmine.de" type="script" />
+  <script src="SaltyShared.dll"/>
+  <script src="SaltyServer.dll"/>
+
+  <settings>
+    <setting name="MinimumPluginVersion" value="0.1.5" default="0.1.5" description="Plugin version that is requiered on the server" />
+    <setting name="SoundPack" value="default" default="default" description="Sound pack that will be used by the plugin" />
+    <setting name="IngameChannel" value="Ingame" default="Ingame" description="TeamSpeak channel the client should get moved into" />
+    <setting name="IngameChannelPassword" value="123" default="" description="Password of the TeamSpeak channel" />
+  </settings>
+</meta>
