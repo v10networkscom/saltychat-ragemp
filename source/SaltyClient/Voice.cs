@@ -102,7 +102,7 @@ namespace SaltyClient
             string playerName = (string)args[0];
 
             if (Voice._deadPlayers.Contains(playerName))
-                Voice._callPartner.Remove(playerName);
+                Voice._deadPlayers.Remove(playerName);
 
             if (Voice._callPartner.Contains(playerName))
                 Voice._callPartner.Remove(playerName);
