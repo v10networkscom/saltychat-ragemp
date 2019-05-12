@@ -97,8 +97,9 @@
                 let positionY = $(this).children("#positionY");
                 let positionZ = $(this).children("#positionZ");
                 let rotation = $(this).children("#rotation");
+                let phoneSignal = $(this).children("#phoneSignal");
 
-                let object = { Command: "SelfStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, Rotation: parseFloat(rotation.val()) } };
+                let object = { Command: "SelfStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, Rotation: parseFloat(rotation.val()), PhoneSignal: parseInt(phoneSignal.val()) } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -106,6 +107,7 @@
                 positionY.val("");
                 positionZ.val("");
                 rotation.val("");
+                phoneSignal.val("");
             });
             
             $("#playerStateUpdate").submit(function(e){
@@ -116,11 +118,12 @@
                 let positionY = $(this).children("#positionY");
                 let positionZ = $(this).children("#positionZ");
                 let voiceRange = $(this).children("#voiceRange");
+                let phoneSignal = $(this).children("#phoneSignal");
                 let phone = $(this).children("#onPhone");
                 let radio = $(this).children("#onRadio");
                 let alive = $(this).children("#alive");
 
-                let object = { Command: "PlayerStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, VoiceRange: parseFloat(voiceRange.val()), IsOnPhone: phone.prop("checked"), IsOnRadio: radio.prop("checked"), IsAlive: alive.prop("checked") } };
+                let object = { Command: "PlayerStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, VoiceRange: parseFloat(voiceRange.val()), PhoneSignal: parseInt(phoneSignal.val()), IsOnPhone: phone.prop("checked"), IsOnRadio: radio.prop("checked"), IsAlive: alive.prop("checked") } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -129,6 +132,7 @@
                 positionY.val("");
                 positionZ.val("");
                 voiceRange.val("");
+                phoneSignal.val("");
             });
             
             $("#removePlayer").submit(function(e){
@@ -136,7 +140,7 @@
                 let serverUid = $(this).children("#serverUid");
                 let name = $(this).children("#name");
 
-                let object = { Command: "RemovePlayer", ServerUniqueIdentifier: serverUid.val(), Parameter: name.val() };
+                let object = { Command: "RemovePlayer", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val() } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -163,7 +167,7 @@
                 let serverUid = $(this).children("#serverUid");
                 let handle = $(this).children("#handle");
 
-                let object = { Command: "StopSound", ServerUniqueIdentifier: serverUid.val(), Parameter: handle.val() };
+                let object = { Command: "StopSound", ServerUniqueIdentifier: serverUid.val(), Parameter: { Handle: handle.val() } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -232,6 +236,9 @@
             <label>Rotation</label>
             <input id="rotation" placeholder="1.0" required />
             
+            <label>Phone Signal</label>
+            <input id="phoneSignal" placeholder="0" required />
+            
             <button type="submit">submit</button>
         </form>
     </p>
@@ -256,6 +263,9 @@
             
             <label>Voice Range</label>
             <input id="voiceRange" placeholder="1.0" required />
+            
+            <label>Phone Signal</label>
+            <input id="phoneSignal" placeholder="0" required />
             
             <label>On Phone</label>
             <input type="checkbox" id="onPhone" />

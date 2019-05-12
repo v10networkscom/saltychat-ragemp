@@ -206,6 +206,7 @@ namespace SaltyClient
         public TSVector Position { get; set; }
         public float? Rotation { get; set; }
         public float? VoiceRange { get; set; }
+        public int PhoneSignal { get; set; }
         public bool IsOnPhone { get; set; }
         public bool IsOnRadio { get; set; }
         public bool IsAlive { get; set; }
@@ -214,14 +215,25 @@ namespace SaltyClient
 
         #region CTOR
         /// <summary>
+        /// Used for <see cref="Command.RemovePlayer"/>
+        /// </summary>
+        /// <param name="name"></param>
+        public PlayerState(string name)
+        {
+            this.Name = name;
+        }
+
+        /// <summary>
         /// Used for <see cref="Command.SelfStateUpdate"/>
         /// </summary>
         /// <param name="position"></param>
         /// <param name="rotation"></param>
-        public PlayerState(RAGE.Vector3 position, float rotation)
+        /// <param name="phoneSignal"></param>
+        public PlayerState(RAGE.Vector3 position, float rotation, int phoneSignal)
         {
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.Rotation = rotation;
+            this.PhoneSignal = phoneSignal;
         }
 
         /// <summary>
@@ -230,14 +242,16 @@ namespace SaltyClient
         /// <param name="name"></param>
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
+        /// <param name="phoneSignal"></param>
         /// <param name="isOnPhone"></param>
         /// <param name="isOnRadio"></param>
         /// <param name="isAlive"></param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isOnPhone, bool isOnRadio, bool isAlive)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isOnRadio, bool isAlive)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
+            this.PhoneSignal = phoneSignal;
             this.IsOnPhone = isOnPhone;
             this.IsOnRadio = isOnRadio;
             this.IsAlive = isAlive;
@@ -249,15 +263,17 @@ namespace SaltyClient
         /// <param name="name"></param>
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
+        /// <param name="phoneSignal"></param>
         /// <param name="isOnPhone"></param>
         /// <param name="isOnRadio"></param>
         /// <param name="isAlive"></param>
         /// <param name="volumeOverride">Overrides the volume (phone, radio and proximity) - from 0 (0%) to 1.5 (150%)</param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isOnPhone, bool isOnRadio, bool isAlive, float volumeOverride)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isOnRadio, bool isAlive, float volumeOverride)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
+            this.PhoneSignal = phoneSignal;
             this.IsOnPhone = isOnPhone;
             this.IsOnRadio = isOnRadio;
             this.IsAlive = isAlive;

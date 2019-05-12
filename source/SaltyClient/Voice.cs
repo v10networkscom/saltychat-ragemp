@@ -110,7 +110,7 @@ namespace SaltyClient
             if (Voice._radioSender.Contains(playerName))
                 Voice._radioSender.Remove(playerName);
 
-            Voice.ExecuteCommand(new PluginCommand(Command.RemovePlayer, Voice._serverUniqueIdentifier, playerName));
+            Voice.ExecuteCommand(new PluginCommand(Command.RemovePlayer, Voice._serverUniqueIdentifier, new PlayerState(playerName)));
         }
 
         /// <summary>
@@ -417,7 +417,7 @@ namespace SaltyClient
         /// <param name="handle">filename or handle of the sound</param>
         public static void StopSound(string handle)
         {
-            Voice.ExecuteCommand(new PluginCommand(Command.StopSound, Voice._serverUniqueIdentifier, handle));
+            Voice.ExecuteCommand(new PluginCommand(Command.StopSound, Voice._serverUniqueIdentifier, new Sound(handle)));
         }
 
         /// <summary>
@@ -425,7 +425,19 @@ namespace SaltyClient
         /// </summary>
         private static void PlayerStateUpdate()
         {
-            Voice.ExecuteCommand(new PluginCommand(Command.SelfStateUpdate, Voice._serverUniqueIdentifier, new PlayerState(RAGE.Elements.Player.LocalPlayer.Position, RAGE.Game.Cam.GetGameplayCamRot(0).Z)));
+            RAGE.Vector3 playerPosition = RAGE.Elements.Player.LocalPlayer.Position;
+
+            Voice.ExecuteCommand(
+                new PluginCommand(
+                    Command.SelfStateUpdate,
+                    Voice._serverUniqueIdentifier,
+                    new PlayerState(
+                        playerPosition,
+                        RAGE.Game.Cam.GetGameplayCamRot(0).Z,
+                        RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(playerPosition.X, playerPosition.Y, playerPosition.Z))
+                    )
+                )
+            );
 
             foreach (var nPlayer in RAGE.Elements.Entities.Players.All)
             {
@@ -436,14 +448,23 @@ namespace SaltyClient
                 if (!nPlayer.TryGetSharedData(SaltyShared.SharedData.Voice_VoiceRange, out float nPlayerVoiceRange))
                     nPlayerVoiceRange = SaltyShared.SharedData.VoiceRanges[2];
 
-                Voice.ExecuteCommand(new PluginCommand(Command.PlayerStateUpdate,Voice._serverUniqueIdentifier,new PlayerState(
+                RAGE.Vector3 nPlayerPosition = nPlayer.Position;
+
+                Voice.ExecuteCommand(
+                    new PluginCommand(
+                        Command.PlayerStateUpdate,
+                        Voice._serverUniqueIdentifier,
+                        new PlayerState(
                             nPlayerName,
-                            nPlayer.Position,
+                            nPlayerPosition,
                             nPlayerVoiceRange,
+                            RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(nPlayerPosition.X, nPlayerPosition.Y, nPlayerPosition.Z)),
                             Voice._callPartner.Contains(nPlayerName),
                             Voice._radioSender.Contains(nPlayerName),
                             !Voice._deadPlayers.Contains(nPlayerName)
-                            )));
+                        )
+                    )
+                );
             }
         }
 
