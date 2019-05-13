@@ -8,7 +8,7 @@
     <setting name="RequiredUpdateBranch" value="" default="" description="Update branch the plugin must use (Production, Testing)" /> <!-- Optional -->
     <setting name="MinimumPluginVersion" value="" default="" description="Lowest plugin version that is requiered on the server (e.g. 0.2)" /> <!-- Optional -->
     <setting name="SoundPack" value="default" default="default" description="Sound Pack that will be used by the plugin" /> <!-- Required -->
-    <setting name="IngameChannel" value="Ingame" default="Ingame" description="TeamSpeak channel the client should get moved into" /> <!-- Required -->
+    <setting name="IngameChannel" value="25" default="" description="ID of the TeamSpeak channel the client should get moved into" /> <!-- Required -->
     <setting name="IngameChannelPassword" value="123" default="" description="Password of the TeamSpeak channel" /> <!-- Optional -->
   </settings>
 </meta>
