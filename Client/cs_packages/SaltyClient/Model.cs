@@ -390,7 +390,7 @@ namespace SaltyClient
     #region UpdateBranch
     internal enum UpdateBranch
     {
-        Production,
+        Stable,
         Testing,
         PreBuild
     }
