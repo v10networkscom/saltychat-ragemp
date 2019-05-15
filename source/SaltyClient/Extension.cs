@@ -1,8 +1,6 @@
 ﻿// Copyright (c) 2019 saltmine.de - https://github.com/saltminede
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace SaltyClient
 {
