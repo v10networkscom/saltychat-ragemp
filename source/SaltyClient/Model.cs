@@ -359,7 +359,7 @@ namespace SaltyClient
         PlayerStateUpdate,
 
         /// <summary>
-        /// Use <see cref="string"/> as parameter
+        /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
         RemovePlayer,
 
@@ -369,7 +369,7 @@ namespace SaltyClient
         PlaySound,
 
         /// <summary>
-        /// Use <see cref="string"/> as parameter
+        /// Use <see cref="Sound"/> as parameter
         /// </summary>
         StopSound
     }
