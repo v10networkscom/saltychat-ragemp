@@ -221,6 +221,7 @@ namespace SaltyClient
         public PlayerState(string name)
         {
             this.Name = name;
+            this.Position = TSVector.Zero;
         }
 
         /// <summary>
@@ -411,6 +412,8 @@ namespace SaltyClient
         public float X;
         public float Y;
         public float Z;
+
+        public static readonly TSVector Zero = new TSVector(0f, 0f, 0f);
 
         public TSVector(float x, float y, float z)
         {
