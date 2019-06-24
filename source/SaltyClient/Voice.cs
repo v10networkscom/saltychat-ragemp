@@ -427,18 +427,6 @@ namespace SaltyClient
         {
             RAGE.Vector3 playerPosition = RAGE.Elements.Player.LocalPlayer.Position;
 
-            Voice.ExecuteCommand(
-                new PluginCommand(
-                    Command.SelfStateUpdate,
-                    Voice._serverUniqueIdentifier,
-                    new PlayerState(
-                        playerPosition,
-                        RAGE.Game.Cam.GetGameplayCamRot(0).Z,
-                        RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(playerPosition.X, playerPosition.Y, playerPosition.Z))
-                    )
-                )
-            );
-
             foreach (var nPlayer in RAGE.Elements.Entities.Players.All)
             {
                 if (nPlayer == RAGE.Elements.Player.LocalPlayer ||
@@ -466,6 +454,18 @@ namespace SaltyClient
                     )
                 );
             }
+
+            Voice.ExecuteCommand(
+                new PluginCommand(
+                    Command.SelfStateUpdate,
+                    Voice._serverUniqueIdentifier,
+                    new PlayerState(
+                        playerPosition,
+                        RAGE.Game.Cam.GetGameplayCamRot(0).Z,
+                        RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(playerPosition.X, playerPosition.Y, playerPosition.Z))
+                    )
+                )
+            );
         }
 
         /// <summary>
