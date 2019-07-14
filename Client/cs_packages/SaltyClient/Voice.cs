@@ -221,11 +221,37 @@ namespace SaltyClient
                 if (isOnRadio && !Voice._radioSender.Contains(playerName))
                 {
                     Voice._radioSender.Add(playerName);
+
+                    Voice.ExecuteCommand(
+                        new PluginCommand(
+                            Command.RadioCommunicationUpdate,
+                            Voice._serverUniqueIdentifier,
+                            new RadioCommunication(
+                                playerName,
+                                RadioType.LongRange,
+                                RadioType.LongRange
+                            )
+                        )
+                    );
+
                     Voice.PlaySound("onMicClick", false, "radio");
                 }
                 else if (!isOnRadio && Voice._radioSender.Contains(playerName))
                 {
                     Voice._radioSender.Remove(playerName);
+
+                    Voice.ExecuteCommand(
+                        new PluginCommand(
+                            Command.RadioCommunicationUpdate,
+                            Voice._serverUniqueIdentifier,
+                            new RadioCommunication(
+                                playerName,
+                                RadioType.None,
+                                RadioType.None
+                            )
+                        )
+                    );
+
                     Voice.PlaySound("offMicClick", false, "radio");
                 }
             }
@@ -448,7 +474,6 @@ namespace SaltyClient
                             nPlayerVoiceRange,
                             RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(nPlayerPosition.X, nPlayerPosition.Y, nPlayerPosition.Z)),
                             Voice._callPartner.Contains(nPlayerName),
-                            Voice._radioSender.Contains(nPlayerName),
                             !Voice._deadPlayers.Contains(nPlayerName)
                         )
                     )

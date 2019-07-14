@@ -208,7 +208,6 @@ namespace SaltyClient
         public float? VoiceRange { get; set; }
         public int PhoneSignal { get; set; }
         public bool IsOnPhone { get; set; }
-        public bool IsOnRadio { get; set; }
         public bool IsAlive { get; set; }
         public float? VolumeOverride { get; set; }
         #endregion
@@ -245,16 +244,14 @@ namespace SaltyClient
         /// <param name="voiceRange"></param>
         /// <param name="phoneSignal"></param>
         /// <param name="isOnPhone"></param>
-        /// <param name="isOnRadio"></param>
         /// <param name="isAlive"></param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isOnRadio, bool isAlive)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isAlive)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
             this.PhoneSignal = phoneSignal;
             this.IsOnPhone = isOnPhone;
-            this.IsOnRadio = isOnRadio;
             this.IsAlive = isAlive;
         }
 
@@ -266,17 +263,15 @@ namespace SaltyClient
         /// <param name="voiceRange"></param>
         /// <param name="phoneSignal"></param>
         /// <param name="isOnPhone"></param>
-        /// <param name="isOnRadio"></param>
         /// <param name="isAlive"></param>
         /// <param name="volumeOverride">Overrides the volume (phone, radio and proximity) - from 0 (0%) to 1.5 (150%)</param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isOnRadio, bool isAlive, float volumeOverride)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isAlive, float volumeOverride)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
             this.PhoneSignal = phoneSignal;
             this.IsOnPhone = isOnPhone;
-            this.IsOnRadio = isOnRadio;
             this.IsAlive = isAlive;
 
             if (volumeOverride > 1.5f)
@@ -287,6 +282,57 @@ namespace SaltyClient
                 this.VolumeOverride = volumeOverride;
         }
         #endregion
+    }
+    #endregion
+
+    #region Radio
+    /// <summary>
+    /// Used for <see cref="Command.RadioTowerUpdate"/>
+    /// </summary>
+    public class RadioTower
+    {
+        public TSVector[] Towers { get; set; }
+    }
+
+    /// <summary>
+    /// Used for <see cref="Command.RadioCommunicationUpdate"/>
+    /// </summary>
+    public class RadioCommunication
+    {
+        public string Name { get; set; }
+        public RadioType SenderRadioType { get; set; }
+        public RadioType OwnRadioType { get; set; }
+
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+        }
+    }
+
+    [Flags]
+    public enum RadioType
+    {
+        /// <summary>
+        /// No radio communication
+        /// </summary>
+        None = 1,
+
+        /// <summary>
+        /// Short range radio communication - appx. 3 kilometers
+        /// </summary>
+        ShortRange = 2,
+
+        /// <summary>
+        /// Long range radio communication - appx. 8 kilometers
+        /// </summary>
+        LongRange = 4,
+
+        /// <summary>
+        /// Distributed radio communication, depending on <see cref="RadioTower"/> - appx. 3 (short range) or 8 (long range) kilometers
+        /// </summary>
+        Distributed = 8,
     }
     #endregion
 
@@ -363,6 +409,16 @@ namespace SaltyClient
         /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
         RemovePlayer,
+
+        /// <summary>
+        /// Use <see cref="RadioTower"/> as parameter
+        /// </summary>
+        RadioTowerUpdate,
+
+        /// <summary>
+        /// Use <see cref="RadioCommunication"/> as parameter
+        /// </summary>
+        RadioCommunicationUpdate,
 
         /// <summary>
         /// Use <see cref="Sound"/> as parameter
