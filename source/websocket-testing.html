@@ -120,10 +120,9 @@
                 let voiceRange = $(this).children("#voiceRange");
                 let phoneSignal = $(this).children("#phoneSignal");
                 let phone = $(this).children("#onPhone");
-                let radio = $(this).children("#onRadio");
                 let alive = $(this).children("#alive");
 
-                let object = { Command: "PlayerStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, VoiceRange: parseFloat(voiceRange.val()), PhoneSignal: parseInt(phoneSignal.val()), IsOnPhone: phone.prop("checked"), IsOnRadio: radio.prop("checked"), IsAlive: alive.prop("checked") } };
+                let object = { Command: "PlayerStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, VoiceRange: parseFloat(voiceRange.val()), PhoneSignal: parseInt(phoneSignal.val()), IsOnPhone: phone.prop("checked"), IsAlive: alive.prop("checked") } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -145,6 +144,23 @@
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
                 name.val("");
+            });
+            
+            $("#radioCommunication").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let name = $(this).children("#name");
+                let senderRadioType = $(this).children("#senderRadioType");
+                let ownRadioType = $(this).children("#ownRadioType");
+                let playMicClick = $(this).children("#playMicClick");
+
+                let object = { Command: "RadioCommunicationUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SenderRadioType: parseInt(senderRadioType.val()), OwnRadioType: parseInt(ownRadioType.val()), PlayMicClick: playMicClick.prop("checked") } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                name.val("");
+                senderRadioType.val("");
+                ownRadioType.val("");
             });
             
             $("#playSound").submit(function(e){
@@ -270,9 +286,6 @@
             <label>On Phone</label>
             <input type="checkbox" id="onPhone" />
             
-            <label>On Radio</label>
-            <input type="checkbox" id="onRadio" />
-            
             <label>Alive</label>
             <input type="checkbox" id="alive" checked />
             
@@ -294,6 +307,28 @@
     </p>
 
     <p>
+        <form id="radioCommunication">
+            <b>Radio Communication</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Player Name</label>
+            <input id="name" placeholder="Rudolf" required />
+            
+            <label>Radio Type (Sender)</label>
+            <input id="senderRadioType" placeholder="4" required />
+            
+            <label>Radio Type (Own)</label>
+            <input id="ownRadioType" placeholder="4" required />
+            
+            <label>Play Mic Click</label>
+            <input type="checkbox" id="playMicClick" checked />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
         <form id="playSound">
             <b>Play Sound</b></br>
             <label>Server UID</label>
@@ -306,7 +341,7 @@
             <input id="handle" />
             
             <label>Loop</label>
-            <input type="checkbox" id="loop" checked />
+            <input type="checkbox" id="loop" />
             
             <button type="submit">submit</button>
         </form>
