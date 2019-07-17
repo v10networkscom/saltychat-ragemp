@@ -214,7 +214,7 @@ namespace SaltyClient
 
             if (RAGE.Elements.Player.LocalPlayer.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName) && tsName == playerName)
             {
-                Voice.PlaySound("selfMicClick", false, "radio");
+                Voice.PlaySound("selfMicClick", false, "MicClick");
             }
             else
             {
@@ -229,12 +229,11 @@ namespace SaltyClient
                             new RadioCommunication(
                                 playerName,
                                 RadioType.LongRange,
-                                RadioType.LongRange
+                                RadioType.LongRange,
+                                true
                             )
                         )
                     );
-
-                    Voice.PlaySound("onMicClick", false, "radio");
                 }
                 else if (!isOnRadio && Voice._radioSender.Contains(playerName))
                 {
@@ -247,12 +246,11 @@ namespace SaltyClient
                             new RadioCommunication(
                                 playerName,
                                 RadioType.None,
-                                RadioType.None
+                                RadioType.None,
+                                true
                             )
                         )
                     );
-
-                    Voice.PlaySound("offMicClick", false, "radio");
                 }
             }
         }

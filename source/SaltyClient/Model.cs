@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace SaltyClient
@@ -292,6 +293,16 @@ namespace SaltyClient
     public class RadioTower
     {
         public TSVector[] Towers { get; set; }
+
+        public RadioTower(params TSVector[] towers)
+        {
+            this.Towers = towers;
+        }
+
+        public RadioTower(params RAGE.Vector3[] towers)
+        {
+            this.Towers = towers.Select(t => new TSVector(t)).ToArray();
+        }
     }
 
     /// <summary>
@@ -302,12 +313,14 @@ namespace SaltyClient
         public string Name { get; set; }
         public RadioType SenderRadioType { get; set; }
         public RadioType OwnRadioType { get; set; }
+        public bool PlayMicClick { get; set; }
 
-        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType)
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick)
         {
             this.Name = name;
             this.SenderRadioType = senderRadioType;
             this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
         }
     }
 
