@@ -207,8 +207,6 @@ namespace SaltyClient
         public TSVector Position { get; set; }
         public float? Rotation { get; set; }
         public float? VoiceRange { get; set; }
-        public int PhoneSignal { get; set; }
-        public bool IsOnPhone { get; set; }
         public bool IsAlive { get; set; }
         public float? VolumeOverride { get; set; }
         #endregion
@@ -229,12 +227,10 @@ namespace SaltyClient
         /// </summary>
         /// <param name="position"></param>
         /// <param name="rotation"></param>
-        /// <param name="phoneSignal"></param>
-        public PlayerState(RAGE.Vector3 position, float rotation, int phoneSignal)
+        public PlayerState(RAGE.Vector3 position, float rotation)
         {
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.Rotation = rotation;
-            this.PhoneSignal = phoneSignal;
         }
 
         /// <summary>
@@ -243,16 +239,12 @@ namespace SaltyClient
         /// <param name="name"></param>
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
-        /// <param name="phoneSignal"></param>
-        /// <param name="isOnPhone"></param>
         /// <param name="isAlive"></param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isAlive)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isAlive)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
-            this.PhoneSignal = phoneSignal;
-            this.IsOnPhone = isOnPhone;
             this.IsAlive = isAlive;
         }
 
@@ -262,17 +254,13 @@ namespace SaltyClient
         /// <param name="name"></param>
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
-        /// <param name="phoneSignal"></param>
-        /// <param name="isOnPhone"></param>
         /// <param name="isAlive"></param>
         /// <param name="volumeOverride">Overrides the volume (phone, radio and proximity) - from 0 (0%) to 1.5 (150%)</param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isAlive, float volumeOverride)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isAlive, float volumeOverride)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
-            this.PhoneSignal = phoneSignal;
-            this.IsOnPhone = isOnPhone;
             this.IsAlive = isAlive;
 
             if (volumeOverride > 1.5f)
@@ -283,6 +271,28 @@ namespace SaltyClient
                 this.VolumeOverride = volumeOverride;
         }
         #endregion
+    }
+    #endregion
+
+    #region Phone
+    /// <summary>
+    /// Used for <see cref="Command.PhoneCommunicationUpdate"/> and <see cref="Command.StopPhoneCommunication"/>
+    /// </summary>
+    public class PhoneCommunication
+    {
+        public string Name { get; set; }
+        public int? SignalStrength { get; set; }
+
+        public PhoneCommunication(string name)
+        {
+            this.Name = name;
+        }
+
+        public PhoneCommunication(string name, int signalStrength)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+        }
     }
     #endregion
 
@@ -306,7 +316,7 @@ namespace SaltyClient
     }
 
     /// <summary>
-    /// Used for <see cref="Command.RadioCommunicationUpdate"/>
+    /// Used for <see cref="Command.RadioCommunicationUpdate"/> and <see cref="Command.StopRadioCommunication"/>
     /// </summary>
     public class RadioCommunication
     {
@@ -314,6 +324,14 @@ namespace SaltyClient
         public RadioType SenderRadioType { get; set; }
         public RadioType OwnRadioType { get; set; }
         public bool PlayMicClick { get; set; }
+
+        public RadioCommunication(string name, bool playMicClick)
+        {
+            this.Name = name;
+            this.SenderRadioType = RadioType.None;
+            this.OwnRadioType = RadioType.None;
+            this.PlayMicClick = playMicClick;
+        }
 
         public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick)
         {
@@ -424,6 +442,16 @@ namespace SaltyClient
         RemovePlayer,
 
         /// <summary>
+        /// Use <see cref="PhoneCommunication"/> as parameter
+        /// </summary>
+        PhoneCommunicationUpdate,
+
+        /// <summary>
+        /// Use <see cref="PhoneCommunication"/> as parameter
+        /// </summary>
+        StopPhoneCommunication,
+
+        /// <summary>
         /// Use <see cref="RadioTower"/> as parameter
         /// </summary>
         RadioTowerUpdate,
@@ -432,6 +460,11 @@ namespace SaltyClient
         /// Use <see cref="RadioCommunication"/> as parameter
         /// </summary>
         RadioCommunicationUpdate,
+
+        /// <summary>
+        /// Use <see cref="RadioCommunication"/> as parameter
+        /// </summary>
+        StopRadioCommunication,
 
         /// <summary>
         /// Use <see cref="Sound"/> as parameter

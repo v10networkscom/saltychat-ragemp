@@ -97,9 +97,8 @@
                 let positionY = $(this).children("#positionY");
                 let positionZ = $(this).children("#positionZ");
                 let rotation = $(this).children("#rotation");
-                let phoneSignal = $(this).children("#phoneSignal");
 
-                let object = { Command: "SelfStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, Rotation: parseFloat(rotation.val()), PhoneSignal: parseInt(phoneSignal.val()) } };
+                let object = { Command: "SelfStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, Rotation: parseFloat(rotation.val()) } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -107,7 +106,6 @@
                 positionY.val("");
                 positionZ.val("");
                 rotation.val("");
-                phoneSignal.val("");
             });
             
             $("#playerStateUpdate").submit(function(e){
@@ -118,11 +116,9 @@
                 let positionY = $(this).children("#positionY");
                 let positionZ = $(this).children("#positionZ");
                 let voiceRange = $(this).children("#voiceRange");
-                let phoneSignal = $(this).children("#phoneSignal");
-                let phone = $(this).children("#onPhone");
                 let alive = $(this).children("#alive");
 
-                let object = { Command: "PlayerStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, VoiceRange: parseFloat(voiceRange.val()), PhoneSignal: parseInt(phoneSignal.val()), IsOnPhone: phone.prop("checked"), IsAlive: alive.prop("checked") } };
+                let object = { Command: "PlayerStateUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), Position: { X: parseFloat(positionX.val()), Y: parseFloat(positionY.val()), Z: parseFloat(positionZ.val()) }, VoiceRange: parseFloat(voiceRange.val()), IsAlive: alive.prop("checked") } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -146,6 +142,32 @@
                 name.val("");
             });
             
+            $("#phoneCommunication").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let name = $(this).children("#name");
+                let signalStrength = $(this).children("#signalStrength");
+
+                let object = { Command: "PhoneCommunicationUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SignalStrength: parseInt(signalStrength.val()) } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                name.val("");
+                signalStrength.val("");
+            });
+            
+            $("#stopPhoneCommunication").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let name = $(this).children("#name");
+
+                let object = { Command: "StopPhoneCommunication", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SignalStrength: null } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                name.val("");
+            });
+            
             $("#radioCommunication").submit(function(e){
                 e.preventDefault();
                 let serverUid = $(this).children("#serverUid");
@@ -161,6 +183,19 @@
                 name.val("");
                 senderRadioType.val("");
                 ownRadioType.val("");
+            });
+            
+            $("#stopRadioCommunication").submit(function(e){
+                e.preventDefault();
+                let serverUid = $(this).children("#serverUid");
+                let name = $(this).children("#name");
+                let playMicClick = $(this).children("#playMicClick");
+
+                let object = { Command: "RadioCommunicationUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SenderRadioType: 1, OwnRadioType: 1, PlayMicClick: playMicClick.prop("checked") } };
+
+                ws.send(JSON.stringify(object));
+                serverUid.val("");
+                name.val("");
             });
             
             $("#playSound").submit(function(e){
@@ -252,9 +287,6 @@
             <label>Rotation</label>
             <input id="rotation" placeholder="1.0" required />
             
-            <label>Phone Signal</label>
-            <input id="phoneSignal" placeholder="0" required />
-            
             <button type="submit">submit</button>
         </form>
     </p>
@@ -280,12 +312,6 @@
             <label>Voice Range</label>
             <input id="voiceRange" placeholder="1.0" required />
             
-            <label>Phone Signal</label>
-            <input id="phoneSignal" placeholder="0" required />
-            
-            <label>On Phone</label>
-            <input type="checkbox" id="onPhone" />
-            
             <label>Alive</label>
             <input type="checkbox" id="alive" checked />
             
@@ -296,6 +322,35 @@
     <p>
         <form id="removePlayer">
             <b>Remove Player</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Player Name</label>
+            <input id="name" placeholder="Rudolf" required />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="phoneCommunication">
+            <b>Phone Communication</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Player Name</label>
+            <input id="name" placeholder="Rudolf" required />
+            
+            <label>Signal Strength</label>
+            <input id="signalStrength" placeholder="4" required />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="stopPhoneCommunication">
+            <b>Stop Phone Communication</b></br>
             <label>Server UID</label>
             <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
             
@@ -320,6 +375,22 @@
             
             <label>Radio Type (Own)</label>
             <input id="ownRadioType" placeholder="4" required />
+            
+            <label>Play Mic Click</label>
+            <input type="checkbox" id="playMicClick" checked />
+            
+            <button type="submit">submit</button>
+        </form>
+    </p>
+
+    <p>
+        <form id="stopRadioCommunication">
+            <b>Stop Radio Communication</b></br>
+            <label>Server UID</label>
+            <input id="serverUid" placeholder="0RI7dd9CsS8jlTmuHal1PPQV/tM=" required />
+            
+            <label>Player Name</label>
+            <input id="name" placeholder="Rudolf" required />
             
             <label>Play Mic Click</label>
             <input type="checkbox" id="playMicClick" checked />
