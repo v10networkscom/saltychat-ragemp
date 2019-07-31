@@ -186,14 +186,14 @@ namespace SaltyClient
             string playerName = (string)args[0];
 
             Voice.ExecuteCommand(
-                    new PluginCommand(
-                        Command.StopPhoneCommunication,
-                        Voice._serverUniqueIdentifier,
-                        new PhoneCommunication(
-                            playerName
-                        )
+                new PluginCommand(
+                    Command.StopPhoneCommunication,
+                    Voice._serverUniqueIdentifier,
+                    new PhoneCommunication(
+                        playerName
                     )
-                );
+                )
+            );
         }
 
         /// <summary>
@@ -250,7 +250,7 @@ namespace SaltyClient
                 {
                     Voice.ExecuteCommand(
                         new PluginCommand(
-                            Command.StopPhoneCommunication,
+                            Command.StopRadioCommunication,
                             Voice._serverUniqueIdentifier,
                             new RadioCommunication(
                                 playerName,
