@@ -283,6 +283,9 @@ namespace SaltyClient
         public string Name { get; set; }
         public int? SignalStrength { get; set; }
 
+        public bool Direct { get; set; }
+        public string[] RelayedBy { get; set; }
+
         public PhoneCommunication(string name)
         {
             this.Name = name;
@@ -292,6 +295,17 @@ namespace SaltyClient
         {
             this.Name = name;
             this.SignalStrength = signalStrength;
+
+            this.Direct = true;
+        }
+
+        public PhoneCommunication(string name, int signalStrength, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
         }
     }
     #endregion
@@ -325,6 +339,9 @@ namespace SaltyClient
         public RadioType OwnRadioType { get; set; }
         public bool PlayMicClick { get; set; }
 
+        public bool Direct { get; set; }
+        public string[] RelayedBy { get; set; }
+
         public RadioCommunication(string name, bool playMicClick)
         {
             this.Name = name;
@@ -339,6 +356,19 @@ namespace SaltyClient
             this.SenderRadioType = senderRadioType;
             this.OwnRadioType = ownRadioType;
             this.PlayMicClick = playMicClick;
+
+            this.Direct = true;
+        }
+
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
         }
     }
 
