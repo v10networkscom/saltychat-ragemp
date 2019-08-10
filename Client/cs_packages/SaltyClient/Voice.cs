@@ -409,10 +409,19 @@ namespace SaltyClient
         /// <param name="args">[0] - <see cref="PluginCommand"/> as json</param>
         public static void OnPluginError(object[] args)
         {
-            PluginCommand pluginCommand = PluginCommand.Deserialize((string)args[0]);
-            
-            if (pluginCommand.TryGetError(out PluginError pluginError))
-                RAGE.Chat.Output($"Error: {pluginError.Error} - Message: {pluginError.Message}");
+            try
+            {
+                PluginError pluginError = Newtonsoft.Json.JsonConvert.DeserializeObject<PluginError>((string)args[0]);
+
+                if (pluginError.Error == Error.AlreadyInGame)
+                    Voice.InitiatePlugin(); // try again an hope that the game instance was reset on plugin side
+                else
+                    RAGE.Chat.Output($"Salty Chat -- Error: {pluginError.Error} - Message: {pluginError.Message}");
+            }
+            catch
+            {
+                RAGE.Chat.Output($"Salty Chat -- We got an error, but couldn't deserialize it...");
+            }
         }
         #endregion
 
