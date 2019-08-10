@@ -147,8 +147,9 @@
                 let serverUid = $(this).children("#serverUid");
                 let name = $(this).children("#name");
                 let signalStrength = $(this).children("#signalStrength");
+                let volume = $(this).children("#volume");
 
-                let object = { Command: "PhoneCommunicationUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SignalStrength: parseInt(signalStrength.val()) } };
+                let object = { Command: "PhoneCommunicationUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SignalStrength: parseInt(signalStrength.val()), Volume: parseFloat(volume.val()), Direct: true } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -175,8 +176,9 @@
                 let senderRadioType = $(this).children("#senderRadioType");
                 let ownRadioType = $(this).children("#ownRadioType");
                 let playMicClick = $(this).children("#playMicClick");
+                let volume = $(this).children("#volume");
 
-                let object = { Command: "RadioCommunicationUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SenderRadioType: parseInt(senderRadioType.val()), OwnRadioType: parseInt(ownRadioType.val()), PlayMicClick: playMicClick.prop("checked") } };
+                let object = { Command: "RadioCommunicationUpdate", ServerUniqueIdentifier: serverUid.val(), Parameter: { Name: name.val(), SenderRadioType: parseInt(senderRadioType.val()), OwnRadioType: parseInt(ownRadioType.val()), PlayMicClick: playMicClick.prop("checked"), Volume: parseFloat(volume.val()), Direct: true } };
 
                 ws.send(JSON.stringify(object));
                 serverUid.val("");
@@ -344,6 +346,9 @@
             <label>Signal Strength</label>
             <input id="signalStrength" placeholder="4" required />
             
+            <label>Volume</label>
+            <input id="volume" value="1" required />
+            
             <button type="submit">submit</button>
         </form>
     </p>
@@ -375,6 +380,9 @@
             
             <label>Radio Type (Own)</label>
             <input id="ownRadioType" placeholder="4" required />
+            
+            <label>Volume</label>
+            <input id="volume" value="1" required />
             
             <label>Play Mic Click</label>
             <input type="checkbox" id="playMicClick" checked />
