@@ -156,23 +156,6 @@ namespace SaltyClient
             return Newtonsoft.Json.JsonConvert.DeserializeObject<PluginCommand>(json);
         }
 
-        public bool TryGetError(out PluginError pluginError)
-        {
-            try
-            {
-                pluginError = this.Parameter.ToObject<PluginError>();
-
-                return true;
-            }
-            catch
-            {
-                // do nothing
-            }
-
-            pluginError = default;
-            return false;
-        }
-
         public bool TryGetState(out PluginState pluginState)
         {
             if (this.Command == Command.StateUpdate)
