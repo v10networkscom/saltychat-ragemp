@@ -422,93 +422,94 @@ namespace SaltyClient
         /// <summary>
         /// Use <see cref="GameInstance"/> as parameter
         /// </summary>
-        Initiate,
+        Initiate = 0,
 
         /// <summary>
         /// Will be sent by the WebSocket and should be answered with a <see cref="Command.Pong"/>
         /// </summary>
-        Ping,
+        Ping = 1,
 
         /// <summary>
         /// Answer to a <see cref="Command.Ping"/> request
         /// </summary>
-        Pong,
+        Pong = 2,
 
         /// <summary>
         /// Will be sent by the WebSocket on state changes (e.g. mic muted/unmuted) and received by <see cref="Voice.OnPluginMessage(object[])"/> - uses <see cref="PluginState"/> as parameter
         /// </summary>
-        StateUpdate,
+        StateUpdate = 3,
 
         /// <summary>
         /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
-        SelfStateUpdate,
+        SelfStateUpdate = 4,
 
         /// <summary>
         /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
-        PlayerStateUpdate,
+        PlayerStateUpdate = 5,
 
         /// <summary>
         /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
-        RemovePlayer,
+        RemovePlayer = 6,
 
         /// <summary>
         /// Use <see cref="PhoneCommunication"/> as parameter
         /// </summary>
-        PhoneCommunicationUpdate,
+        PhoneCommunicationUpdate = 7,
 
         /// <summary>
         /// Use <see cref="PhoneCommunication"/> as parameter
         /// </summary>
-        StopPhoneCommunication,
+        StopPhoneCommunication = 8,
 
         /// <summary>
         /// Use <see cref="RadioTower"/> as parameter
         /// </summary>
-        RadioTowerUpdate,
+        RadioTowerUpdate = 9,
 
         /// <summary>
         /// Use <see cref="RadioCommunication"/> as parameter
         /// </summary>
-        RadioCommunicationUpdate,
+        RadioCommunicationUpdate = 10,
 
         /// <summary>
         /// Use <see cref="RadioCommunication"/> as parameter
         /// </summary>
-        StopRadioCommunication,
+        StopRadioCommunication = 11,
 
         /// <summary>
         /// Use <see cref="Sound"/> as parameter
         /// </summary>
-        PlaySound,
+        PlaySound = 12,
 
         /// <summary>
         /// Use <see cref="Sound"/> as parameter
         /// </summary>
-        StopSound
+        StopSound = 13
     }
     #endregion
 
     #region Error
     public enum Error
     {
-        OK,
-        InvalidJson,
-        NotConnectedToServer,
-        AlreadyInGame,
-        ChannelNotAvailable,
-        NameNotAvailable
+        OK = 0,
+        InvalidJson = 1,
+        NotConnectedToServer = 2,
+        AlreadyInGame = 3,
+        ChannelNotAvailable = 4,
+        NameNotAvailable = 5,
+        InvalidValue = 6
     }
     #endregion
 
     #region UpdateBranch
     internal enum UpdateBranch
     {
-        Stable,
-        Testing,
-        PreBuild
+        Stable = 0,
+        Testing = 1,
+        PreBuild = 2
     }
     #endregion
 
