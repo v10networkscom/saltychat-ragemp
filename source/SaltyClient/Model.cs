@@ -265,6 +265,7 @@ namespace SaltyClient
     {
         public string Name { get; set; }
         public int? SignalStrength { get; set; }
+        public float? Volume { get; set; }
 
         public bool Direct { get; set; }
         public string[] RelayedBy { get; set; }
@@ -282,10 +283,29 @@ namespace SaltyClient
             this.Direct = true;
         }
 
+        public PhoneCommunication(string name, int signalStrength, float volume)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+            this.Volume = volume;
+
+            this.Direct = true;
+        }
+
         public PhoneCommunication(string name, int signalStrength, bool direct, string[] relayedBy)
         {
             this.Name = name;
             this.SignalStrength = signalStrength;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
+        }
+
+        public PhoneCommunication(string name, int signalStrength, float volume, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+            this.Volume = volume;
 
             this.Direct = direct;
             this.RelayedBy = relayedBy;
@@ -321,6 +341,7 @@ namespace SaltyClient
         public RadioType SenderRadioType { get; set; }
         public RadioType OwnRadioType { get; set; }
         public bool PlayMicClick { get; set; }
+        public float? Volume { get; set; }
 
         public bool Direct { get; set; }
         public string[] RelayedBy { get; set; }
@@ -343,12 +364,35 @@ namespace SaltyClient
             this.Direct = true;
         }
 
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, float volume)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
+            this.Volume = volume;
+
+            this.Direct = true;
+        }
+
         public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, bool direct, string[] relayedBy)
         {
             this.Name = name;
             this.SenderRadioType = senderRadioType;
             this.OwnRadioType = ownRadioType;
             this.PlayMicClick = playMicClick;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
+        }
+
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, float volume, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
+            this.Volume = volume;
 
             this.Direct = direct;
             this.RelayedBy = relayedBy;
