@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace SaltyClient
@@ -155,23 +156,6 @@ namespace SaltyClient
             return Newtonsoft.Json.JsonConvert.DeserializeObject<PluginCommand>(json);
         }
 
-        public bool TryGetError(out PluginError pluginError)
-        {
-            try
-            {
-                pluginError = this.Parameter.ToObject<PluginError>();
-
-                return true;
-            }
-            catch
-            {
-                // do nothing
-            }
-
-            pluginError = default;
-            return false;
-        }
-
         public bool TryGetState(out PluginState pluginState)
         {
             if (this.Command == Command.StateUpdate)
@@ -206,9 +190,6 @@ namespace SaltyClient
         public TSVector Position { get; set; }
         public float? Rotation { get; set; }
         public float? VoiceRange { get; set; }
-        public int PhoneSignal { get; set; }
-        public bool IsOnPhone { get; set; }
-        public bool IsOnRadio { get; set; }
         public bool IsAlive { get; set; }
         public float? VolumeOverride { get; set; }
         #endregion
@@ -229,12 +210,10 @@ namespace SaltyClient
         /// </summary>
         /// <param name="position"></param>
         /// <param name="rotation"></param>
-        /// <param name="phoneSignal"></param>
-        public PlayerState(RAGE.Vector3 position, float rotation, int phoneSignal)
+        public PlayerState(RAGE.Vector3 position, float rotation)
         {
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.Rotation = rotation;
-            this.PhoneSignal = phoneSignal;
         }
 
         /// <summary>
@@ -243,18 +222,12 @@ namespace SaltyClient
         /// <param name="name"></param>
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
-        /// <param name="phoneSignal"></param>
-        /// <param name="isOnPhone"></param>
-        /// <param name="isOnRadio"></param>
         /// <param name="isAlive"></param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isOnRadio, bool isAlive)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isAlive)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
-            this.PhoneSignal = phoneSignal;
-            this.IsOnPhone = isOnPhone;
-            this.IsOnRadio = isOnRadio;
             this.IsAlive = isAlive;
         }
 
@@ -264,19 +237,13 @@ namespace SaltyClient
         /// <param name="name"></param>
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
-        /// <param name="phoneSignal"></param>
-        /// <param name="isOnPhone"></param>
-        /// <param name="isOnRadio"></param>
         /// <param name="isAlive"></param>
         /// <param name="volumeOverride">Overrides the volume (phone, radio and proximity) - from 0 (0%) to 1.5 (150%)</param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, int phoneSignal, bool isOnPhone, bool isOnRadio, bool isAlive, float volumeOverride)
+        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isAlive, float volumeOverride)
         {
             this.Name = name;
             this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
             this.VoiceRange = voiceRange;
-            this.PhoneSignal = phoneSignal;
-            this.IsOnPhone = isOnPhone;
-            this.IsOnRadio = isOnRadio;
             this.IsAlive = isAlive;
 
             if (volumeOverride > 1.5f)
@@ -287,6 +254,173 @@ namespace SaltyClient
                 this.VolumeOverride = volumeOverride;
         }
         #endregion
+    }
+    #endregion
+
+    #region Phone
+    /// <summary>
+    /// Used for <see cref="Command.PhoneCommunicationUpdate"/> and <see cref="Command.StopPhoneCommunication"/>
+    /// </summary>
+    public class PhoneCommunication
+    {
+        public string Name { get; set; }
+        public int? SignalStrength { get; set; }
+        public float? Volume { get; set; }
+
+        public bool Direct { get; set; }
+        public string[] RelayedBy { get; set; }
+
+        public PhoneCommunication(string name)
+        {
+            this.Name = name;
+        }
+
+        public PhoneCommunication(string name, int signalStrength)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+
+            this.Direct = true;
+        }
+
+        public PhoneCommunication(string name, int signalStrength, float volume)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+            this.Volume = volume;
+
+            this.Direct = true;
+        }
+
+        public PhoneCommunication(string name, int signalStrength, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
+        }
+
+        public PhoneCommunication(string name, int signalStrength, float volume, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SignalStrength = signalStrength;
+            this.Volume = volume;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
+        }
+    }
+    #endregion
+
+    #region Radio
+    /// <summary>
+    /// Used for <see cref="Command.RadioTowerUpdate"/>
+    /// </summary>
+    public class RadioTower
+    {
+        public TSVector[] Towers { get; set; }
+
+        public RadioTower(params TSVector[] towers)
+        {
+            this.Towers = towers;
+        }
+
+        public RadioTower(params RAGE.Vector3[] towers)
+        {
+            this.Towers = towers.Select(t => new TSVector(t)).ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Used for <see cref="Command.RadioCommunicationUpdate"/> and <see cref="Command.StopRadioCommunication"/>
+    /// </summary>
+    public class RadioCommunication
+    {
+        public string Name { get; set; }
+        public RadioType SenderRadioType { get; set; }
+        public RadioType OwnRadioType { get; set; }
+        public bool PlayMicClick { get; set; }
+        public float? Volume { get; set; }
+
+        public bool Direct { get; set; }
+        public string[] RelayedBy { get; set; }
+
+        public RadioCommunication(string name, bool playMicClick)
+        {
+            this.Name = name;
+            this.SenderRadioType = RadioType.None;
+            this.OwnRadioType = RadioType.None;
+            this.PlayMicClick = playMicClick;
+        }
+
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
+
+            this.Direct = true;
+        }
+
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, float volume)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
+            this.Volume = volume;
+
+            this.Direct = true;
+        }
+
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
+        }
+
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, float volume, bool direct, string[] relayedBy)
+        {
+            this.Name = name;
+            this.SenderRadioType = senderRadioType;
+            this.OwnRadioType = ownRadioType;
+            this.PlayMicClick = playMicClick;
+            this.Volume = volume;
+
+            this.Direct = direct;
+            this.RelayedBy = relayedBy;
+        }
+    }
+
+    [Flags]
+    public enum RadioType
+    {
+        /// <summary>
+        /// No radio communication
+        /// </summary>
+        None = 1,
+
+        /// <summary>
+        /// Short range radio communication - appx. 3 kilometers
+        /// </summary>
+        ShortRange = 2,
+
+        /// <summary>
+        /// Long range radio communication - appx. 8 kilometers
+        /// </summary>
+        LongRange = 4,
+
+        /// <summary>
+        /// Distributed radio communication, depending on <see cref="RadioTower"/> - appx. 3 (short range) or 8 (long range) kilometers
+        /// </summary>
+        Distributed = 8,
     }
     #endregion
 
@@ -332,68 +466,94 @@ namespace SaltyClient
         /// <summary>
         /// Use <see cref="GameInstance"/> as parameter
         /// </summary>
-        Initiate,
+        Initiate = 0,
 
         /// <summary>
         /// Will be sent by the WebSocket and should be answered with a <see cref="Command.Pong"/>
         /// </summary>
-        Ping,
+        Ping = 1,
 
         /// <summary>
         /// Answer to a <see cref="Command.Ping"/> request
         /// </summary>
-        Pong,
+        Pong = 2,
 
         /// <summary>
         /// Will be sent by the WebSocket on state changes (e.g. mic muted/unmuted) and received by <see cref="Voice.OnPluginMessage(object[])"/> - uses <see cref="PluginState"/> as parameter
         /// </summary>
-        StateUpdate,
+        StateUpdate = 3,
 
         /// <summary>
         /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
-        SelfStateUpdate,
+        SelfStateUpdate = 4,
 
         /// <summary>
         /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
-        PlayerStateUpdate,
+        PlayerStateUpdate = 5,
 
         /// <summary>
         /// Use <see cref="PlayerState"/> as parameter
         /// </summary>
-        RemovePlayer,
+        RemovePlayer = 6,
+
+        /// <summary>
+        /// Use <see cref="PhoneCommunication"/> as parameter
+        /// </summary>
+        PhoneCommunicationUpdate = 7,
+
+        /// <summary>
+        /// Use <see cref="PhoneCommunication"/> as parameter
+        /// </summary>
+        StopPhoneCommunication = 8,
+
+        /// <summary>
+        /// Use <see cref="RadioTower"/> as parameter
+        /// </summary>
+        RadioTowerUpdate = 9,
+
+        /// <summary>
+        /// Use <see cref="RadioCommunication"/> as parameter
+        /// </summary>
+        RadioCommunicationUpdate = 10,
+
+        /// <summary>
+        /// Use <see cref="RadioCommunication"/> as parameter
+        /// </summary>
+        StopRadioCommunication = 11,
 
         /// <summary>
         /// Use <see cref="Sound"/> as parameter
         /// </summary>
-        PlaySound,
+        PlaySound = 12,
 
         /// <summary>
         /// Use <see cref="Sound"/> as parameter
         /// </summary>
-        StopSound
+        StopSound = 13
     }
     #endregion
 
     #region Error
     public enum Error
     {
-        OK,
-        InvalidJson,
-        NotConnectedToServer,
-        AlreadyInGame,
-        ChannelNotAvailable,
-        NameNotAvailable
+        OK = 0,
+        InvalidJson = 1,
+        NotConnectedToServer = 2,
+        AlreadyInGame = 3,
+        ChannelNotAvailable = 4,
+        NameNotAvailable = 5,
+        InvalidValue = 6
     }
     #endregion
 
     #region UpdateBranch
     internal enum UpdateBranch
     {
-        Stable,
-        Testing,
-        PreBuild
+        Stable = 0,
+        Testing = 1,
+        PreBuild = 2
     }
     #endregion
 

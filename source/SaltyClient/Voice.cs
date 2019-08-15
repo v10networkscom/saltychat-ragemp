@@ -21,8 +21,6 @@ namespace SaltyClient
         private static DateTime _nextUpdate = DateTime.Now;
 
         private static List<string> _deadPlayers = new List<string>();
-        private static List<string> _callPartner = new List<string>();
-        private static List<string> _radioSender = new List<string>();
         private static string _radioChannel { get; set; }
 
         public static bool IsEnabled { get; private set; } = false;
@@ -104,12 +102,6 @@ namespace SaltyClient
             if (Voice._deadPlayers.Contains(playerName))
                 Voice._deadPlayers.Remove(playerName);
 
-            if (Voice._callPartner.Contains(playerName))
-                Voice._callPartner.Remove(playerName);
-
-            if (Voice._radioSender.Contains(playerName))
-                Voice._radioSender.Remove(playerName);
-
             Voice.ExecuteCommand(new PluginCommand(Command.RemovePlayer, Voice._serverUniqueIdentifier, new PlayerState(playerName)));
         }
 
@@ -157,9 +149,32 @@ namespace SaltyClient
         /// <param name="args">args[0] - playerName</param>
         private static void OnEstablishCall(object[] args)
         {
+#warning There seems to be an issue where the "client"-object is not correctly referenced on the client, remove workaround if the issue is resolved
+
             string playerName = (string)args[0];
 
-            Voice._callPartner.Add(playerName);
+            foreach (RAGE.Elements.Player player in RAGE.Elements.Entities.Players.All)
+            {
+                if (!player.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName) || tsName != playerName)
+                    continue;
+
+                RAGE.Vector3 ownPosition = RAGE.Elements.Player.LocalPlayer.Position;
+                RAGE.Vector3 playerPosition = player.Position;
+
+                Voice.ExecuteCommand(
+                    new PluginCommand(
+                        Command.PhoneCommunicationUpdate,
+                        Voice._serverUniqueIdentifier,
+                        new PhoneCommunication(
+                            playerName,
+                            RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(ownPosition.X, ownPosition.Y, ownPosition.Z)) +
+                            RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(playerPosition.X, playerPosition.Y, playerPosition.Z))
+                        )
+                    )
+                );
+
+                break;
+            }
         }
 
         /// <summary>
@@ -168,19 +183,17 @@ namespace SaltyClient
         /// <param name="args">if args[0] doesn't specify a playerName, it will end the call to all players</param>
         private static void OnEndCall(object[] args)
         {
-            if (args != default && args.Length == 1)
-            {
-                string playerName = (string)args[0];
+            string playerName = (string)args[0];
 
-                if (!Voice._callPartner.Contains(playerName))
-                    return;
-
-                Voice._callPartner.Remove(playerName);
-            }
-            else
-            {
-                Voice._callPartner.Clear();
-            }
+            Voice.ExecuteCommand(
+                new PluginCommand(
+                    Command.StopPhoneCommunication,
+                    Voice._serverUniqueIdentifier,
+                    new PhoneCommunication(
+                        playerName
+                    )
+                )
+            );
         }
 
         /// <summary>
@@ -214,19 +227,37 @@ namespace SaltyClient
 
             if (RAGE.Elements.Player.LocalPlayer.TryGetSharedData(SaltyShared.SharedData.Voice_TeamSpeakName, out string tsName) && tsName == playerName)
             {
-                Voice.PlaySound("selfMicClick", false, "radio");
+                Voice.PlaySound("selfMicClick", false, "MicClick");
             }
             else
             {
-                if (isOnRadio && !Voice._radioSender.Contains(playerName))
+                if (isOnRadio)
                 {
-                    Voice._radioSender.Add(playerName);
-                    Voice.PlaySound("onMicClick", false, "radio");
+                    Voice.ExecuteCommand(
+                        new PluginCommand(
+                            Command.RadioCommunicationUpdate,
+                            Voice._serverUniqueIdentifier,
+                            new RadioCommunication(
+                                playerName,
+                                RadioType.LongRange,
+                                RadioType.LongRange,
+                                true
+                            )
+                        )
+                    );
                 }
-                else if (!isOnRadio && Voice._radioSender.Contains(playerName))
+                else
                 {
-                    Voice._radioSender.Remove(playerName);
-                    Voice.PlaySound("offMicClick", false, "radio");
+                    Voice.ExecuteCommand(
+                        new PluginCommand(
+                            Command.StopRadioCommunication,
+                            Voice._serverUniqueIdentifier,
+                            new RadioCommunication(
+                                playerName,
+                                true
+                            )
+                        )
+                    );
                 }
             }
         }
@@ -378,10 +409,19 @@ namespace SaltyClient
         /// <param name="args">[0] - <see cref="PluginCommand"/> as json</param>
         public static void OnPluginError(object[] args)
         {
-            PluginCommand pluginCommand = PluginCommand.Deserialize((string)args[0]);
-            
-            if (pluginCommand.TryGetError(out PluginError pluginError))
-                RAGE.Chat.Output($"Error: {pluginError.Error} - Message: {pluginError.Message}");
+            try
+            {
+                PluginError pluginError = Newtonsoft.Json.JsonConvert.DeserializeObject<PluginError>((string)args[0]);
+
+                if (pluginError.Error == Error.AlreadyInGame)
+                    Voice.InitiatePlugin(); // try again an hope that the game instance was reset on plugin side
+                else
+                    RAGE.Chat.Output($"Salty Chat -- Error: {pluginError.Error} - Message: {pluginError.Message}");
+            }
+            catch
+            {
+                RAGE.Chat.Output($"Salty Chat -- We got an error, but couldn't deserialize it...");
+            }
         }
         #endregion
 
@@ -446,9 +486,6 @@ namespace SaltyClient
                             nPlayerName,
                             nPlayerPosition,
                             nPlayerVoiceRange,
-                            RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(nPlayerPosition.X, nPlayerPosition.Y, nPlayerPosition.Z)),
-                            Voice._callPartner.Contains(nPlayerName),
-                            Voice._radioSender.Contains(nPlayerName),
                             !Voice._deadPlayers.Contains(nPlayerName)
                         )
                     )
@@ -461,8 +498,7 @@ namespace SaltyClient
                     Voice._serverUniqueIdentifier,
                     new PlayerState(
                         playerPosition,
-                        RAGE.Game.Cam.GetGameplayCamRot(0).Z,
-                        RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(playerPosition.X, playerPosition.Y, playerPosition.Z))
+                        RAGE.Game.Cam.GetGameplayCamRot(0).Z
                     )
                 )
             );
