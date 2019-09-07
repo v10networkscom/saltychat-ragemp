@@ -479,7 +479,7 @@ namespace SaltyClient
         Pong = 2,
 
         /// <summary>
-        /// Will be sent by the WebSocket on state changes (e.g. mic muted/unmuted) and received by <see cref="Voice.OnPluginMessage(object[])"/> - uses <see cref="PluginState"/> as parameter
+        /// Will be sent by the WebSocket on state changes (e.g. mic muted/unmuted) and received by <see cref="VoiceManager.OnPluginMessage(object[])"/> - uses <see cref="PluginState"/> as parameter
         /// </summary>
         StateUpdate = 3,
 
@@ -560,9 +560,9 @@ namespace SaltyClient
     #region SoundEventArgs
     public class SoundEventArgs : EventArgs
     {
-        public bool IsTalking => Voice.IsTalking;
-        public bool IsMicrophoneMuted => Voice.IsMicrophoneMuted;
-        public bool IsSoundMuted => Voice.IsSoundMuted;
+        public bool IsTalking => VoiceManager.IsTalking;
+        public bool IsMicrophoneMuted => VoiceManager.IsMicrophoneMuted;
+        public bool IsSoundMuted => VoiceManager.IsSoundMuted;
     }
     #endregion
 
@@ -587,6 +587,25 @@ namespace SaltyClient
             this.X = position.X;
             this.Y = position.Y;
             this.Z = position.Z;
+        }
+    }
+    #endregion
+
+    #region Voice Client
+    public class VoiceClient
+    {
+        public RAGE.Elements.Player Player { get; set; }
+        public string TeamSpeakName { get; set; }
+        public float VoiceRange { get; set; }
+        public bool IsAlive { get; set; }
+
+        public VoiceClient (RAGE.Elements.Player player, string teamSpeakName, float voiceRange)
+        {
+            this.Player = player;
+            this.TeamSpeakName = teamSpeakName;
+            this.VoiceRange = voiceRange;
+
+            this.IsAlive = true;
         }
     }
     #endregion

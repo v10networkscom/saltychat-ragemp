@@ -8,17 +8,21 @@ namespace SaltyShared
 {
     public static class Event
     {
-        public const string Voice_Initialize = "Voice_Initialize";
-        public const string Voice_RejectedVersion = "Voice_RejectedVersion";
-        public const string Voice_IsTalking = "Voice_IsTalking";
-        public const string Voice_SetVoiceRange = "Voice_SetVoiceRange";
-        public const string Voice_EstablishedCall = "Voice_EstablishedCall";
-        public const string Voice_EndCall = "Voice_EndCall";
-        public const string Voice_SetRadioChannel = "Voice_SetRadioChannel";
-        public const string Voice_TalkingOnRadio = "Voice_TalkingOnRadio";
+        public const string SaltyChat_Initialize = "SaltyChat_Initialize";
+        public const string SaltyChat_CheckVersion = "SaltyChat_CheckVersion";
 
-        public const string Player_Died = "Player_Died";
-        public const string Player_Revived = "Player_Revived";
-        public const string Player_Disconnected = "Player_Disconnected";
+        public const string SaltyChat_UpdateClient = "SaltyChat_UpdateClient";
+        public const string SaltyChat_Disconnected = "SaltyChat_Disconnected";
+
+        public const string SaltyChat_IsTalking = "SaltyChat_IsTalking";
+        public const string SaltyChat_SetVoiceRange = "SaltyChat_SetVoiceRange";
+
+        public const string SaltyChat_EstablishedCall = "SaltyChat_EstablishedCall";
+        public const string SaltyChat_EndCall = "SaltyChat_EndCall";
+
+        public const string SaltyChat_SetRadioChannel = "SaltyChat_SetRadioChannel";
+        public const string SaltyChat_IsSending = "SaltyChat_IsSending";
+        public const string SaltyChat_IsSendingRelayed = "SaltyChat_IsSendingRelayed";
+        public const string SaltyChat_UpdateRadioTowers = "SaltyChat_UpdateRadioTowers";
     }
 }
