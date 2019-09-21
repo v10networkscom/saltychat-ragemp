@@ -218,6 +218,17 @@ namespace SaltyServer
             radioChannel.AddMember(voiceClient);
         }
 
+        public static void LeaveRadioChannel(GTANetworkAPI.Client player)
+        {
+            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+                return;
+
+            foreach (RadioChannel radioChannel in VoiceManager.RadioChannels.Where(r => r.IsMember(voiceClient)))
+            {
+                VoiceManager.LeaveRadioChannel(player, radioChannel.Name);
+            }
+        }
+
         public static void LeaveRadioChannel(GTANetworkAPI.Client player, string radioChannelName)
         {
             if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
@@ -323,7 +334,7 @@ namespace SaltyServer
         #endregion
 
         #region Helper
-        private static bool TryGetVoiceClient(GTANetworkAPI.Client client, out VoiceClient voiceClient)
+        public static bool TryGetVoiceClient(GTANetworkAPI.Client client, out VoiceClient voiceClient)
         {
             lock (VoiceManager._voiceClients)
             {
