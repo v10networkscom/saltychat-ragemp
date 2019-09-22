@@ -16,7 +16,13 @@ namespace SaltyServer
         public static string IngameChannel { get; private set; }
         public static string IngameChannelPassword { get; private set; }
 
-        public static GTANetworkAPI.Vector3[] RadioTowers { get; private set; } = new GTANetworkAPI.Vector3[0];
+        public static GTANetworkAPI.Vector3[] RadioTowers { get; private set; } = new GTANetworkAPI.Vector3[]
+        {
+            new GTANetworkAPI.Vector3(552.8169f, -27.8083f, 94.87936f),
+            new GTANetworkAPI.Vector3(758.5276f, 1273.74f, 360.2965f),
+            new GTANetworkAPI.Vector3(1857.389f, 3694.529f, 38.9618f),
+            new GTANetworkAPI.Vector3(-448.2019f, 6019.807f, 36.62916f)
+        };
 
         public static VoiceClient[] VoiceClients => VoiceManager._voiceClients.Values.ToArray();
         private static Dictionary<GTANetworkAPI.Client, VoiceClient> _voiceClients = new Dictionary<GTANetworkAPI.Client, VoiceClient>();

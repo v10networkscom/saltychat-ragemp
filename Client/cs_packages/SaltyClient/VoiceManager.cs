@@ -348,8 +348,8 @@ namespace SaltyClient
                             VoiceManager.ServerUniqueIdentifier,
                             new RadioCommunication(
                                 voiceClient.TeamSpeakName,
-                                RadioType.LongRange,
-                                RadioType.LongRange,
+                                RadioType.LongRange | RadioType.Distributed,
+                                RadioType.LongRange | RadioType.Distributed,
                                 true
                             )
                         )
@@ -405,8 +405,8 @@ namespace SaltyClient
                             VoiceManager.ServerUniqueIdentifier,
                             new RadioCommunication(
                                 voiceClient.TeamSpeakName,
-                                RadioType.LongRange,
-                                RadioType.LongRange,
+                                RadioType.LongRange | RadioType.Distributed,
+                                RadioType.LongRange | RadioType.Distributed,
                                 stateChange,
                                 direct,
                                 relays
