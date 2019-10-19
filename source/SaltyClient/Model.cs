@@ -418,9 +418,14 @@ namespace SaltyClient
         LongRange = 4,
 
         /// <summary>
-        /// Distributed radio communication, depending on <see cref="RadioTower"/> - appx. 3 (short range) or 8 (long range) kilometers
+        /// Distributed radio communication, depending on <see cref="RadioTower"/> - appx. 1.8 (ultra short range),  appx. 3 (short range) or 8 (long range) kilometers
         /// </summary>
         Distributed = 8,
+
+        /// <summary>
+        /// Ultra short range radio communication - appx. 1.8 kilometers
+        /// </summary>
+        UltraShortRange = 16,
     }
     #endregion
 
