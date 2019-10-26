@@ -76,7 +76,7 @@ namespace SaltyServer
 
             foreach (VoiceClient cl in VoiceManager.VoiceClients)
             {
-                cl.Player.TriggerEvent(SaltyShared.Event.SaltyChat_Disconnected, voiceClient.TeamSpeakName);
+                cl.Player.TriggerEvent(SaltyShared.Event.SaltyChat_Disconnected, voiceClient.Player.Handle.Value);
             }
         }
         #endregion
