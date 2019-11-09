@@ -53,7 +53,7 @@ namespace SaltyServer
                 VoiceManager._voiceClients.Add(client, voiceClient);
             }
 
-            client.TriggerEvent(SaltyShared.Event.SaltyChat_Initialize, VoiceManager.ServerUniqueIdentifier, VoiceManager.RequiredUpdateBranch, VoiceManager.MinimumPluginVersion, VoiceManager.SoundPack, VoiceManager.IngameChannel, VoiceManager.IngameChannelPassword, voiceClient.TeamSpeakName);
+            client.TriggerEvent(SaltyShared.Event.SaltyChat_Initialize, voiceClient.TeamSpeakName, VoiceManager.ServerUniqueIdentifier, VoiceManager.SoundPack, VoiceManager.IngameChannel, VoiceManager.IngameChannelPassword);
         }
 
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.PlayerDisconnected)]

@@ -11,8 +11,6 @@ namespace SaltyClient
     {
         #region Props/Fields
         public static string ServerUniqueIdentifier { get; private set; }
-        public static string RequiredBranch { get; private set; }
-        public static string MinimumVersion { get; private set; }
         public static string SoundPack { get; private set; }
         public static ulong IngameChannel { get; private set; }
         public static string IngameChannelPassword { get; private set; }
@@ -87,16 +85,14 @@ namespace SaltyClient
         /// <summary>
         /// Trigger if plugin should be initialized
         /// </summary>
-        /// <param name="args">args[0] - server unique identifier | args[1] - required branch | args[2] - minimum version | args[3] - sound pack | args[4] - channelName | args[5] - channelPassword | args[6] - teamSpeakName</param>
+        /// <param name="args">args[0] - teamSpeakName | args[1] - serverUniqueIdentifier | args[2] - soundPack | args[3] - channelId | args[4] - channelPassword | </param>
         public static void OnInitialize(object[] args)
         {
-            VoiceManager.ServerUniqueIdentifier = (string)args[0];
-            VoiceManager.RequiredBranch = (string)args[1];
-            VoiceManager.MinimumVersion = (string)args[2];
-            VoiceManager.SoundPack = (string)args[3];
-            VoiceManager.IngameChannel = Convert.ToUInt64((string)args[4]);
-            VoiceManager.IngameChannelPassword = (string)args[5];
-            VoiceManager.TeamSpeakName = (string)args[6];
+            VoiceManager.TeamSpeakName = (string)args[0];
+            VoiceManager.ServerUniqueIdentifier = (string)args[1];
+            VoiceManager.SoundPack = (string)args[2];
+            VoiceManager.IngameChannel = Convert.ToUInt64((string)args[3]);
+            VoiceManager.IngameChannelPassword = (string)args[4];
 
             VoiceManager.IsEnabled = true;
 
