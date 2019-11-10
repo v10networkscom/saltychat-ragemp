@@ -97,7 +97,7 @@ namespace SaltyClient
             VoiceManager.IsEnabled = true;
 
             VoiceManager._htmlWindow = new RAGE.Ui.HtmlWindow("package://Voice/SaltyWebSocket.html");
-            //Voice._htmlWindow.Active = false;
+            //VoiceManager._htmlWindow.Active = false;
         }
 
         /// <summary>
