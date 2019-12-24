@@ -83,7 +83,7 @@ namespace SaltyServer
 
         #region Remote Events
         [GTANetworkAPI.RemoteEvent(SaltyShared.Event.SaltyChat_CheckVersion)]
-        private void OnCheckVersion(GTANetworkAPI.Client player, string branch, string version)
+        public void OnCheckVersion(GTANetworkAPI.Client player, string branch, string version)
         {
             if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
