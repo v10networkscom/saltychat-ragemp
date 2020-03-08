@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
@@ -20,17 +20,15 @@
 
   <ItemGroup>
     <Reference Include="Bootstrapper">
-      <HintPath>C:\Program Files (x86)\RAGEMP\server-files\bridge\runtime\Bootstrapper.dll</HintPath>
-      <Private>true</Private>
+      <HintPath>..\..\..\..\..\Program Files (x86)\RAGEMP\server-files\dotnet\runtime\Bootstrapper.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>C:\Program Files (x86)\RAGEMP\server-files\bridge\runtime\Newtonsoft.Json.dll</HintPath>
-      <Private>true</Private>
+      <HintPath>..\..\..\..\..\Program Files (x86)\RAGEMP\server-files\dotnet\runtime\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;..\..\Server\&quot; /y&#xD;&#xA;copy &quot;$(TargetDir)SaltyShared.dll&quot; &quot;..\..\Server\&quot; /y" />
+    <Exec Command="copy &quot;$(TargetPath)&quot; &quot;..\..\dist\dotnet\resources\SaltyChat\&quot; /y&#xD;&#xA;copy &quot;$(TargetDir)SaltyShared.dll&quot; &quot;..\..\dist\dotnet\resources\SaltyChat\&quot; /y" />
   </Target>
 
 </Project>

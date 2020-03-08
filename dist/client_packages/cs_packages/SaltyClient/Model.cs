@@ -38,34 +38,22 @@ namespace SaltyClient
         /// Foldername of the sound pack that will be used (%AppData%\TS3Client\Plugins\SaltyChat\{SoundPack}\)
         /// </summary>
         public string SoundPack { get; set; }
+
+        /// <summary>
+        /// IDs of channels which the player can join, while the game instace is running
+        /// </summary>
+        public ulong[] SwissChannelIds { get; set; }
         #endregion
 
         #region CTOR
-        public GameInstance(string serverUniqueIdentifier, string name, ulong channelId)
-        {
-            this.ServerUniqueIdentifier = serverUniqueIdentifier;
-            this.Name = name;
-            this.ChannelId = channelId;
-            this.ChannelPassword = String.Empty;
-            this.SoundPack = "default";
-        }
-
-        public GameInstance(string serverUniqueIdentifier, string name, ulong channelId, string channelPassword)
-        {
-            this.ServerUniqueIdentifier = serverUniqueIdentifier;
-            this.Name = name;
-            this.ChannelId = channelId;
-            this.ChannelPassword = channelPassword;
-            this.SoundPack = "default";
-        }
-
-        public GameInstance(string serverUniqueIdentifier, string name, ulong channelId, string channelPassword, string soundPack)
+        public GameInstance(string serverUniqueIdentifier, string name, ulong channelId, string channelPassword, string soundPack, ulong[] swissChannels)
         {
             this.ServerUniqueIdentifier = serverUniqueIdentifier;
             this.Name = name;
             this.ChannelId = channelId;
             this.ChannelPassword = channelPassword;
             this.SoundPack = soundPack;
+            this.SwissChannelIds = swissChannels;
         }
         #endregion
     }
@@ -344,17 +332,10 @@ namespace SaltyClient
         public float? Volume { get; set; }
 
         public bool Direct { get; set; }
+        public bool Secondary { get; set; }
         public string[] RelayedBy { get; set; }
 
-        public RadioCommunication(string name, bool playMicClick)
-        {
-            this.Name = name;
-            this.SenderRadioType = RadioType.None;
-            this.OwnRadioType = RadioType.None;
-            this.PlayMicClick = playMicClick;
-        }
-
-        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick)
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, bool isSecondary)
         {
             this.Name = name;
             this.SenderRadioType = senderRadioType;
@@ -362,20 +343,10 @@ namespace SaltyClient
             this.PlayMicClick = playMicClick;
 
             this.Direct = true;
+            this.Secondary = isSecondary;
         }
 
-        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, float volume)
-        {
-            this.Name = name;
-            this.SenderRadioType = senderRadioType;
-            this.OwnRadioType = ownRadioType;
-            this.PlayMicClick = playMicClick;
-            this.Volume = volume;
-
-            this.Direct = true;
-        }
-
-        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, bool direct, string[] relayedBy)
+        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, bool direct, bool isSecondary, string[] relayedBy)
         {
             this.Name = name;
             this.SenderRadioType = senderRadioType;
@@ -383,18 +354,7 @@ namespace SaltyClient
             this.PlayMicClick = playMicClick;
 
             this.Direct = direct;
-            this.RelayedBy = relayedBy;
-        }
-
-        public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, float volume, bool direct, string[] relayedBy)
-        {
-            this.Name = name;
-            this.SenderRadioType = senderRadioType;
-            this.OwnRadioType = ownRadioType;
-            this.PlayMicClick = playMicClick;
-            this.Volume = volume;
-
-            this.Direct = direct;
+            this.Secondary = isSecondary;
             this.RelayedBy = relayedBy;
         }
     }

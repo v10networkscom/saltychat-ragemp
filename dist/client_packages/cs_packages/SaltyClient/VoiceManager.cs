@@ -14,6 +14,7 @@ namespace SaltyClient
         public static string SoundPack { get; private set; }
         public static ulong IngameChannel { get; private set; }
         public static string IngameChannelPassword { get; private set; }
+        public static ulong[] SwissChannels { get; private set; }
         public static string TeamSpeakName { get; private set; }
         public static float VoiceRange { get; private set; }
         public static string RadioChannel { get; private set; }
@@ -93,6 +94,7 @@ namespace SaltyClient
             VoiceManager.SoundPack = (string)args[2];
             VoiceManager.IngameChannel = Convert.ToUInt64((string)args[3]);
             VoiceManager.IngameChannelPassword = (string)args[4];
+            VoiceManager.SwissChannels = Newtonsoft.Json.JsonConvert.DeserializeObject<ulong[]>((string)args[5]);
 
             VoiceManager.IsEnabled = true;
 
@@ -319,52 +321,7 @@ namespace SaltyClient
         /// <param name="args">args[0] - handle | args[1] - isOnRadio</param>
         private static void OnPlayerIsSending(object[] args)
         {
-            ushort handle = Convert.ToUInt16(args[0]);
-            bool isOnRadio = (bool)args[1];
-
-            Player player = Entities.Players.GetAtRemote(handle);
-
-            if (player == null)
-                return;
-
-            if (Player.LocalPlayer == player)
-            {
-                VoiceManager.PlaySound("selfMicClick", false, "MicClick");
-            }
-            else
-            {
-                if (!VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
-                    return;
-
-                if (isOnRadio)
-                {
-                    VoiceManager.ExecuteCommand(
-                        new PluginCommand(
-                            Command.RadioCommunicationUpdate,
-                            VoiceManager.ServerUniqueIdentifier,
-                            new RadioCommunication(
-                                voiceClient.TeamSpeakName,
-                                RadioType.LongRange | RadioType.Distributed,
-                                RadioType.LongRange | RadioType.Distributed,
-                                true
-                            )
-                        )
-                    );
-                }
-                else
-                {
-                    VoiceManager.ExecuteCommand(
-                        new PluginCommand(
-                            Command.StopRadioCommunication,
-                            VoiceManager.ServerUniqueIdentifier,
-                            new RadioCommunication(
-                                voiceClient.TeamSpeakName,
-                                true
-                            )
-                        )
-                    );
-                }
-            }
+            VoiceManager.OnPlayerIsSendingRelayed(new object[] { args[0], args[1], args[2], true, "[]" });
         }
 
         /// <summary>
@@ -374,7 +331,7 @@ namespace SaltyClient
         private static void OnPlayerIsSendingRelayed(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
-            bool isOnRadio = (bool)args[1];
+            bool isSending = (bool)args[1];
             bool stateChange = (bool)args[2];
             bool direct = (bool)args[3];
             string[] relays = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>((string)args[4]);
@@ -386,14 +343,44 @@ namespace SaltyClient
 
             if (Player.LocalPlayer == player)
             {
-                VoiceManager.PlaySound("selfMicClick", false, "MicClick");
+                if (isSending)
+                {
+                    VoiceManager.ExecuteCommand(
+                        new PluginCommand(
+                            Command.RadioCommunicationUpdate,
+                            VoiceManager.ServerUniqueIdentifier,
+                            new RadioCommunication(
+                                VoiceManager.TeamSpeakName,
+                                RadioType.LongRange,
+                                RadioType.LongRange,
+                                stateChange,
+                                direct,
+                                false,
+                                relays
+                            )
+                        )
+                    );
+                }
+                else
+                {
+                    VoiceManager.ExecuteCommand(
+                        new PluginCommand(
+                            Command.StopRadioCommunication,
+                            VoiceManager.ServerUniqueIdentifier,
+                            new RadioCommunication(
+                                VoiceManager.TeamSpeakName,
+                                RadioType.None,
+                                RadioType.None,
+                                stateChange,
+                                false
+                            )
+                        )
+                    );
+                }
             }
-            else
+            else if (VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
             {
-                if (!VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
-                    return;
-
-                if (isOnRadio)
+                if (isSending)
                 {
                     VoiceManager.ExecuteCommand(
                         new PluginCommand(
@@ -401,10 +388,11 @@ namespace SaltyClient
                             VoiceManager.ServerUniqueIdentifier,
                             new RadioCommunication(
                                 voiceClient.TeamSpeakName,
-                                RadioType.LongRange | RadioType.Distributed,
-                                RadioType.LongRange | RadioType.Distributed,
+                                RadioType.LongRange,
+                                RadioType.LongRange,
                                 stateChange,
                                 direct,
+                                false,
                                 relays
                             )
                         )
@@ -418,7 +406,10 @@ namespace SaltyClient
                             VoiceManager.ServerUniqueIdentifier,
                             new RadioCommunication(
                                 voiceClient.TeamSpeakName,
-                                stateChange
+                                RadioType.None,
+                                RadioType.None,
+                                stateChange,
+                                false
                             )
                         )
                     );
@@ -508,7 +499,7 @@ namespace SaltyClient
         {
             PluginCommand pluginCommand = PluginCommand.Deserialize((string)args[0]);
 
-            if (pluginCommand.Command == Command.Ping && VoiceManager._nextUpdate.AddSeconds(1) > DateTime.Now)
+            if (pluginCommand.Command == Command.Ping && pluginCommand.ServerUniqueIdentifier == VoiceManager.ServerUniqueIdentifier)
             {
                 VoiceManager.ExecuteCommand(new PluginCommand(VoiceManager.ServerUniqueIdentifier));
                 return;
@@ -592,7 +583,7 @@ namespace SaltyClient
             if (String.IsNullOrWhiteSpace(VoiceManager.TeamSpeakName))
                 return;
 
-            VoiceManager.ExecuteCommand(new PluginCommand(Command.Initiate, new GameInstance(VoiceManager.ServerUniqueIdentifier, VoiceManager.TeamSpeakName, VoiceManager.IngameChannel, VoiceManager.IngameChannelPassword == default ? String.Empty : VoiceManager.IngameChannelPassword, VoiceManager.SoundPack)));
+            VoiceManager.ExecuteCommand(new PluginCommand(Command.Initiate, new GameInstance(VoiceManager.ServerUniqueIdentifier, VoiceManager.TeamSpeakName, VoiceManager.IngameChannel, VoiceManager.IngameChannelPassword == default ? String.Empty : VoiceManager.IngameChannelPassword, VoiceManager.SoundPack, VoiceManager.SwissChannels)));
         }
 
         /// <summary>

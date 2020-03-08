@@ -44,7 +44,7 @@ namespace SaltyServer
 
                     foreach (RadioChannelMember member in this._members.Where(m => m.IsSending))
                     {
-                        voiceClient.Player.TriggerEvent(SaltyShared.Event.SaltyChat_IsSending, member.VoiceClient.Player.Handle.Value, true);
+                        voiceClient.Player.TriggerEvent(SaltyShared.Event.SaltyChat_IsSending, member.VoiceClient.Player.Handle.Value, true, false);
                     }
                 }
             }
@@ -71,7 +71,7 @@ namespace SaltyServer
                         {
                             foreach (RadioChannelMember channelMember in this._members)
                             {
-                                channelMember.VoiceClient.Player.TriggerEvent(SaltyShared.Event.SaltyChat_IsSending, voiceClient.Player.Handle.Value, false);
+                                channelMember.VoiceClient.Player.TriggerEvent(SaltyShared.Event.SaltyChat_IsSending, voiceClient.Player.Handle.Value, false, true);
                             }
                         }
                     }
@@ -81,7 +81,7 @@ namespace SaltyServer
 
                     foreach (RadioChannelMember channelMember in this._members.Where(m => m.IsSending))
                     {
-                        voiceClient.Player.TriggerEvent(SaltyShared.Event.SaltyChat_IsSending, channelMember.VoiceClient.Player.Handle.Value, false);
+                        voiceClient.Player.TriggerEvent(SaltyShared.Event.SaltyChat_IsSending, channelMember.VoiceClient.Player.Handle.Value, false, false);
                     }
                 }
             }

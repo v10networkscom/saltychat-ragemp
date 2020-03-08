@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy &quot;$(ProjectDir)*.cs&quot; &quot;..\..\Client\cs_packages\SaltyClient\&quot; /y&#xD;&#xA;copy &quot;$(SolutionDir)SaltyShared\*.cs&quot; &quot;..\..\Client\cs_packages\SaltyShared\&quot; /y" />
+    <Exec Command="copy &quot;$(ProjectDir)*.cs&quot; &quot;..\..\dist\client_packages\cs_packages\SaltyClient\&quot; /y&#xD;&#xA;copy &quot;$(SolutionDir)SaltyShared\*.cs&quot; &quot;..\..\dist\client_packages\cs_packages\SaltyShared\&quot; /y" />
   </Target>
 
 </Project>
