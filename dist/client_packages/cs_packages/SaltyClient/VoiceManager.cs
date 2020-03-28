@@ -499,57 +499,74 @@ namespace SaltyClient
         {
             PluginCommand pluginCommand = PluginCommand.Deserialize((string)args[0]);
 
-            if (pluginCommand.Command == Command.Ping && pluginCommand.ServerUniqueIdentifier == VoiceManager.ServerUniqueIdentifier)
+            switch (pluginCommand.Command)
             {
-                VoiceManager.ExecuteCommand(new PluginCommand(VoiceManager.ServerUniqueIdentifier));
-                return;
+                case Command.Ping:
+                    {
+                        if (pluginCommand.ServerUniqueIdentifier == VoiceManager.ServerUniqueIdentifier)
+                            VoiceManager.ExecuteCommand(new PluginCommand(VoiceManager.ServerUniqueIdentifier));
+
+                        break;
+                    }
+                case Command.Reset:
+                    {
+                        VoiceManager._isIngame = false;
+
+                        VoiceManager.InitiatePlugin();
+
+                        break;
+                    }
+                case Command.StateUpdate:
+                    {
+                        if (!pluginCommand.TryGetState(out PluginState pluginState))
+                            break;
+
+                        if (pluginState.IsReady != VoiceManager._isIngame)
+                        {
+                            RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_CheckVersion, pluginState.UpdateBranch, pluginState.Version);
+
+                            VoiceManager._isIngame = pluginState.IsReady;
+                        }
+
+                        bool hasTalkingChanged = false;
+                        bool hasMicMutedChanged = false;
+                        bool hasSoundMutedChanged = false;
+
+                        if (pluginState.IsTalking != VoiceManager.IsTalking)
+                        {
+                            VoiceManager.IsTalking = pluginState.IsTalking;
+                            hasTalkingChanged = true;
+
+                            RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_IsTalking, VoiceManager.IsTalking);
+                        }
+
+                        if (pluginState.IsMicrophoneMuted != VoiceManager.IsMicrophoneMuted)
+                        {
+                            VoiceManager.IsMicrophoneMuted = pluginState.IsMicrophoneMuted;
+                            hasMicMutedChanged = true;
+                        }
+
+                        if (pluginState.IsSoundMuted != VoiceManager.IsSoundMuted)
+                        {
+                            VoiceManager.IsSoundMuted = pluginState.IsSoundMuted;
+                            hasSoundMutedChanged = true;
+                        }
+
+                        if (hasTalkingChanged)
+                            VoiceManager.OnTalkingStateChange?.Invoke(new SoundEventArgs());
+
+                        if (hasMicMutedChanged)
+                            VoiceManager.OnMicrophoneMuteStateChange?.Invoke(new SoundEventArgs());
+
+                        if (hasSoundMutedChanged)
+                            VoiceManager.OnSoundMuteStateChange?.Invoke(new SoundEventArgs());
+
+                        if (hasTalkingChanged || hasMicMutedChanged || hasSoundMutedChanged)
+                            VoiceManager.OnSoundStateChange?.Invoke(new SoundEventArgs());
+
+                        break;
+                    }
             }
-
-            if (!pluginCommand.TryGetState(out PluginState pluginState))
-                return;
-
-            if (pluginState.IsReady != VoiceManager._isIngame)
-            {
-                RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_CheckVersion, pluginState.UpdateBranch, pluginState.Version);
-
-                VoiceManager._isIngame = pluginState.IsReady;
-            }
-
-            bool hasTalkingChanged = false;
-            bool hasMicMutedChanged = false;
-            bool hasSoundMutedChanged = false;
-
-            if (pluginState.IsTalking != VoiceManager.IsTalking)
-            {
-                VoiceManager.IsTalking = pluginState.IsTalking;
-                hasTalkingChanged = true;
-
-                RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_IsTalking, VoiceManager.IsTalking);
-            }
-
-            if (pluginState.IsMicrophoneMuted != VoiceManager.IsMicrophoneMuted)
-            {
-                VoiceManager.IsMicrophoneMuted = pluginState.IsMicrophoneMuted;
-                hasMicMutedChanged = true;
-            }
-
-            if (pluginState.IsSoundMuted != VoiceManager.IsSoundMuted)
-            {
-                VoiceManager.IsSoundMuted = pluginState.IsSoundMuted;
-                hasSoundMutedChanged = true;
-            }
-
-            if (hasTalkingChanged)
-                VoiceManager.OnTalkingStateChange?.Invoke(new SoundEventArgs());
-
-            if (hasMicMutedChanged)
-                VoiceManager.OnMicrophoneMuteStateChange?.Invoke(new SoundEventArgs());
-
-            if (hasSoundMutedChanged)
-                VoiceManager.OnSoundMuteStateChange?.Invoke(new SoundEventArgs());
-
-            if (hasTalkingChanged || hasMicMutedChanged || hasSoundMutedChanged)
-                VoiceManager.OnSoundStateChange?.Invoke(new SoundEventArgs());
         }
 
         /// <summary>
