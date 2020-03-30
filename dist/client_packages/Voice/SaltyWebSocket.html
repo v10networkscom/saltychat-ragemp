@@ -21,8 +21,21 @@
         let packetsReceived = 0;
         let lastCommand = "";
 
-        function connect(){
-            window.webSocket = new window.WebSocket(`ws://${pluginAddress}/`);
+        function connect(address){
+            if (typeof address === "string"){
+                pluginAddress = address
+
+                console.log("new address: " + address);
+            }
+
+            console.log("connecting...");
+
+            try{
+                window.webSocket = new window.WebSocket(`ws://${pluginAddress}/`);
+            }
+            catch{
+                // do nothing
+            }
 
             webSocket.onmessage = function (evt) {
                 let object = JSON.parse(evt.data);
@@ -56,8 +69,6 @@
                 isConnected = false;
 
                 mp.trigger("SaltyChat_OnDisconnected");
-
-                connect();
             }
         }
 
@@ -91,7 +102,6 @@
         }
 
         document.addEventListener("DOMContentLoaded", function(){
-            connect();
             updateHtml();
         });
 	</script>

@@ -23,6 +23,7 @@ namespace SaltyClient
         private static bool _isConnected { get; set; }
         private static bool _isIngame { get; set; }
         private static DateTime _nextUpdate = DateTime.Now;
+        private static DateTime _lastTick = DateTime.Now;
 
         public static VoiceClient[] VoiceClients => VoiceManager._voiceClients.Values.ToArray();
         private static Dictionary<ushort, VoiceClient> _voiceClients = new Dictionary<ushort, VoiceClient>();
@@ -99,6 +100,7 @@ namespace SaltyClient
             VoiceManager.IsEnabled = true;
 
             VoiceManager._htmlWindow = new RAGE.Ui.HtmlWindow("package://Voice/SaltyWebSocket.html");
+            VoiceManager._htmlWindow.ExecuteJs("connect('127.0.0.1:8088')");
             //VoiceManager._htmlWindow.Active = false;
         }
 
@@ -441,8 +443,10 @@ namespace SaltyClient
             RAGE.Game.Pad.DisableControlAction(1, (int)RAGE.Game.Control.EnterCheatCode, true);
             RAGE.Game.Pad.DisableControlAction(1, (int)RAGE.Game.Control.PushToTalk, true);
 
+            VoiceManager._lastTick = DateTime.Now;
+
             // Calculate player states
-            if (VoiceManager.IsReady && DateTime.Now > VoiceManager._nextUpdate)
+            if (VoiceManager.IsReady && VoiceManager._lastTick > VoiceManager._nextUpdate)
             {
                 VoiceManager.PlayerStateUpdate();
 
@@ -489,6 +493,9 @@ namespace SaltyClient
         public static void OnPluginDisconnected(object[] args)
         {
             VoiceManager._isConnected = false;
+
+            if (VoiceManager._lastTick.AddSeconds(1) > DateTime.Now)
+                VoiceManager._htmlWindow.ExecuteJs("connect()");
         }
 
         /// <summary>
@@ -503,13 +510,18 @@ namespace SaltyClient
             {
                 case Command.Ping:
                     {
-                        if (pluginCommand.ServerUniqueIdentifier == VoiceManager.ServerUniqueIdentifier)
+                        // need that weird lastTick workaround, because tick is the only event that isn't fired after a disconnect and we want the plugin to time out
+                        if (pluginCommand.ServerUniqueIdentifier == VoiceManager.ServerUniqueIdentifier && VoiceManager._lastTick.AddSeconds(1) > DateTime.Now)
                             VoiceManager.ExecuteCommand(new PluginCommand(VoiceManager.ServerUniqueIdentifier));
 
                         break;
                     }
                 case Command.Reset:
                     {
+                        // need that weird lastTick workaround, because tick is the only event that isn't fired after a disconnect and we want the plugin to time out
+                        if (DateTime.Now > VoiceManager._lastTick.AddSeconds(1))
+                            break;
+
                         VoiceManager._isIngame = false;
 
                         VoiceManager.InitiatePlugin();
