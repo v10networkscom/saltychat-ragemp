@@ -545,6 +545,12 @@ namespace SaltyClient
 
         public static readonly TSVector Zero = new TSVector(0f, 0f, 0f);
 
+        [Newtonsoft.Json.JsonConstructor]
+        public TSVector()
+        {
+
+        }
+
         public TSVector(float x, float y, float z)
         {
             this.X = x;
