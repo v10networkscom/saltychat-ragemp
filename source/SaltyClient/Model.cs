@@ -164,6 +164,10 @@ namespace SaltyClient
             return false;
         }
         #endregion
+
+        #region Conditional Property Serialization
+        public bool ShouldSerializeParameter() => this.Parameter != null;
+        #endregion
     }
     #endregion
 
@@ -180,6 +184,7 @@ namespace SaltyClient
         public float? VoiceRange { get; set; }
         public bool IsAlive { get; set; }
         public float? VolumeOverride { get; set; }
+        public bool DistanceCulled { get; set; }
         #endregion
 
         #region CTOR
@@ -242,6 +247,20 @@ namespace SaltyClient
                 this.VolumeOverride = volumeOverride;
         }
         #endregion
+
+        #region Conditional Property Serialization
+        public bool ShouldSerializeName() => !String.IsNullOrEmpty(this.Name);
+
+        public bool ShouldSerializeRotation() => this.Rotation.HasValue;
+
+        public bool ShouldSerializeVoiceRange() => this.VoiceRange.HasValue;
+
+        public bool ShouldSerializeIsAlive() => this.IsAlive;
+
+        public bool ShouldSerializeVolumeOverride() => this.VolumeOverride.HasValue;
+
+        public bool ShouldSerializeDistanceCulled() => this.DistanceCulled;
+        #endregion
     }
     #endregion
 
@@ -251,13 +270,16 @@ namespace SaltyClient
     /// </summary>
     public class PhoneCommunication
     {
+        #region Properties
         public string Name { get; set; }
         public int? SignalStrength { get; set; }
         public float? Volume { get; set; }
 
         public bool Direct { get; set; }
         public string[] RelayedBy { get; set; }
+        #endregion
 
+        #region CTOR
         public PhoneCommunication(string name)
         {
             this.Name = name;
@@ -298,6 +320,17 @@ namespace SaltyClient
             this.Direct = direct;
             this.RelayedBy = relayedBy;
         }
+        #endregion
+
+        #region Conditional Property Serialization
+        public bool ShouldSerializeSignalStrength() => this.SignalStrength.HasValue;
+
+        public bool ShouldSerializeVolume() => this.Volume.HasValue;
+
+        public bool ShouldSerializeDirect() => this.Direct;
+
+        public bool ShouldSerializeRelayedBy() => this.RelayedBy != null && this.RelayedBy.Length > 0;
+        #endregion
     }
     #endregion
 
@@ -307,8 +340,11 @@ namespace SaltyClient
     /// </summary>
     public class RadioTower
     {
+        #region Properties
         public TSVector[] Towers { get; set; }
+        #endregion
 
+        #region CTOR
         public RadioTower(params TSVector[] towers)
         {
             this.Towers = towers;
@@ -318,6 +354,7 @@ namespace SaltyClient
         {
             this.Towers = towers.Select(t => new TSVector(t)).ToArray();
         }
+        #endregion
     }
 
     /// <summary>
@@ -325,6 +362,7 @@ namespace SaltyClient
     /// </summary>
     public class RadioCommunication
     {
+        #region Properties
         public string Name { get; set; }
         public RadioType SenderRadioType { get; set; }
         public RadioType OwnRadioType { get; set; }
@@ -334,7 +372,9 @@ namespace SaltyClient
         public bool Direct { get; set; }
         public bool Secondary { get; set; }
         public string[] RelayedBy { get; set; }
+        #endregion
 
+        #region CTOR
         public RadioCommunication(string name, RadioType senderRadioType, RadioType ownRadioType, bool playMicClick, bool isSecondary)
         {
             this.Name = name;
@@ -357,6 +397,19 @@ namespace SaltyClient
             this.Secondary = isSecondary;
             this.RelayedBy = relayedBy;
         }
+        #endregion
+
+        #region Conditional Property Serialization
+        public bool ShouldSerializePlayMicClick() => this.PlayMicClick;
+
+        public bool ShouldSerializeVolume() => this.Volume.HasValue;
+
+        public bool ShouldSerializeDirect() => this.Direct;
+
+        public bool ShouldSerializeSecondary() => this.Secondary;
+
+        public bool ShouldSerializeRelayedBy() => this.RelayedBy != null && this.RelayedBy.Length > 0;
+        #endregion
     }
 
     [Flags]

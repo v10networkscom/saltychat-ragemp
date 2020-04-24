@@ -494,6 +494,7 @@ namespace SaltyClient
         {
             VoiceManager._isConnected = false;
 
+            // need that weird lastTick workaround, because tick is the only event that isn't fired after a disconnect and we don't want to reconnect to the plugin
             if (VoiceManager._lastTick.AddSeconds(1) > DateTime.Now)
                 VoiceManager._htmlWindow.ExecuteJs("connect()");
         }
