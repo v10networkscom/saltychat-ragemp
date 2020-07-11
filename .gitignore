@@ -328,3 +328,7 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
+
+dist/client_packages/cs_packages/SaltyClient/*.cs
+dist/client_packages/cs_packages/SaltyShared/*.cs
+dist/dotnet/resources/SaltyChat/*.dll

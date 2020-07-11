@@ -6,7 +6,8 @@ You can report bugs or make sugguestions via issues, or contribute via pull requ
 Join our [Discord](https://discord.gg/MBCnqSf) and start with [Salty Chat](https://www.saltmine.de/)!
 
 # Setup Steps
-1. Make sure `csharp` in `server-files\conf.json` is enabled
+1. [Build the solution](https://github.com/saltminede/saltychat-docs/blob/master/installing-vs.md#installing-visual-studio) (`source\SaltyChat-RAGEMP.sln`) with Visual Studio 2019
 2. Copy contents of `dist`-folder into `server-files`
-3. Edit `dotnet\resources\SaltyChat\meta.xml` and fill in your server UID, ingame channel ID and password
+3. Open `dotnet\resources\SaltyChat\meta.xml` and adjust the [variables](https://github.com/saltminede/saltychat-docs/blob/master/setup.md#config-variables)
 4. Add `<resource src="SaltyChat" />` to `server-files\dotnet\settings.xml`
+5. Make sure `csharp` in `server-files\conf.json` is enabled
