@@ -90,7 +90,7 @@ namespace SaltyClient
 
             this._htmlWindow = new RAGE.Ui.HtmlWindow("package://Voice/SaltyWebSocket.html");
             this._htmlWindow.ExecuteJs("connect('127.0.0.1:38088')");
-            //this._htmlWindow.Active = false;
+            this._htmlWindow.Active = false;
         }
 
         /// <summary>
