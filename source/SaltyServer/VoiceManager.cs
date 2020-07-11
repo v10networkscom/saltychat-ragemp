@@ -132,7 +132,7 @@ namespace SaltyServer
 
                 foreach (VoiceClient client in this.VoiceClients)
                 {
-                    client.Player.TriggerEvent(SaltyShared.Event.SaltyChat_UpdateClient, player.Handle.Value, voiceClient.TeamSpeakName, voiceClient.VoiceRange);
+                    client.Player.TriggerEvent(SaltyShared.Event.SaltyChat_SetVoiceRange, player.Handle.Value, voiceClient.VoiceRange);
                 }
             }
         }

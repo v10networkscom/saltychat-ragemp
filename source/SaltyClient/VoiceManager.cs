@@ -15,7 +15,7 @@ namespace SaltyClient
         public string IngameChannelPassword { get; private set; }
         public ulong[] SwissChannels { get; private set; }
         public string TeamSpeakName { get; private set; }
-        public float VoiceRange { get; private set; }
+        public float VoiceRange { get; private set; } = SharedData.VoiceRanges[1];
         public string RadioChannel { get; private set; }
 
         private RAGE.Ui.HtmlWindow _htmlWindow = default;
@@ -50,6 +50,7 @@ namespace SaltyClient
             RAGE.Events.Add(Event.SaltyChat_UpdateClient, this.OnUpdateVoiceClient);
             RAGE.Events.Add(Event.SaltyChat_Disconnected, this.OnPlayerDisconnect);
 
+            RAGE.Events.Add(Event.SaltyChat_SetVoiceRange, this.OnUpdateVoiceRange);
             RAGE.Events.Add(Event.SaltyChat_PlayerDied, this.OnPlayerDied);
             RAGE.Events.Add(Event.SaltyChat_PlayerRevived, this.OnPlayerRevived);
 
@@ -101,29 +102,21 @@ namespace SaltyClient
             ushort handle = Convert.ToUInt16(args[0]);
             string teamSpeakName = (string)args[1];
             float voiceRange = (float)args[2];
-
             Player player = Entities.Players.GetAtRemote(handle);
 
             if (player == null)
                 return;
 
-            if (Player.LocalPlayer == player)
+            lock (this._voiceClients)
             {
-                this.VoiceRange = voiceRange;
-            }
-            else
-            {
-                lock (this._voiceClients)
+                if (this._voiceClients.TryGetValue(handle, out VoiceClient voiceClient))
                 {
-                    if (this._voiceClients.TryGetValue(handle, out VoiceClient voiceClient))
-                    {
-                        voiceClient.TeamSpeakName = teamSpeakName;
-                        voiceClient.VoiceRange = voiceRange;
-                    }
-                    else
-                    {
-                        this._voiceClients.Add(handle, new VoiceClient(player, teamSpeakName, voiceRange));
-                    }
+                    voiceClient.TeamSpeakName = teamSpeakName;
+                    voiceClient.VoiceRange = voiceRange;
+                }
+                else
+                {
+                    this._voiceClients.Add(handle, new VoiceClient(player, teamSpeakName, voiceRange));
                 }
             }
         }
@@ -150,6 +143,28 @@ namespace SaltyClient
                         )
                     );
                 }
+            }
+        }
+
+        /// <summary>
+        /// Update Voice Client
+        /// </summary>
+        /// <param name="args">args[0] - handle | args[1] voiceRange</param>
+        private void OnUpdateVoiceRange(object[] args)
+        {
+            ushort handle = Convert.ToUInt16(args[0]);
+            float voiceRange = (float)args[1];
+
+            if (Player.LocalPlayer.RemoteId == handle)
+            {
+                this.VoiceRange = voiceRange;
+
+                RAGE.Chat.Output($"New voice range is {this.VoiceRange} metres.");
+            }
+            else
+            {
+                if (this._voiceClients.TryGetValue(handle, out VoiceClient voiceClient))
+                    voiceClient.VoiceRange = voiceRange;
             }
         }
 
