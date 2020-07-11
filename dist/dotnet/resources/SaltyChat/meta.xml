@@ -10,6 +10,6 @@
     <setting name="SoundPack" value="default" default="default" description="Sound Pack that will be used by the plugin" /> <!-- Required -->
     <setting name="IngameChannel" value="25" default="" description="ID of the TeamSpeak channel the client should get moved into" /> <!-- Required -->
     <setting name="IngameChannelPassword" value="5V88FWWME615" default="" description="Password of the TeamSpeak channel" /> <!-- Optional -->
-    <setting name="SwissChannelIds" value="61,62" default="" description="Password of the TeamSpeak channel" /> <!-- Optional -->
+    <setting name="SwissChannelIds" value="61,62" default="" description="Channel IDs of swiss channels" /> <!-- Optional -->
   </settings>
 </meta>

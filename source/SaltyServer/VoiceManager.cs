@@ -1,6 +1,4 @@
-﻿// Copyright (c) 2019 saltmine.de - https://github.com/saltminede
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,15 +7,16 @@ namespace SaltyServer
     public class VoiceManager : GTANetworkAPI.Script
     {
         #region Properties
-        public static string ServerUniqueIdentifier { get; private set; }
-        public static string RequiredUpdateBranch { get; private set; }
-        public static string MinimumPluginVersion { get; private set; }
-        public static string SoundPack { get; private set; }
-        public static string IngameChannel { get; private set; }
-        public static string IngameChannelPassword { get; private set; }
-        public static ulong[] SwissChannels { get; private set; }
+        public static VoiceManager Instance { get; private set; }
 
-        public static GTANetworkAPI.Vector3[] RadioTowers { get; private set; } = new GTANetworkAPI.Vector3[]
+        public string ServerUniqueIdentifier { get; private set; }
+        public string MinimumPluginVersion { get; private set; }
+        public string SoundPack { get; private set; }
+        public string IngameChannel { get; private set; }
+        public string IngameChannelPassword { get; private set; }
+        public ulong[] SwissChannels { get; private set; }
+
+        public GTANetworkAPI.Vector3[] RadioTowers { get; private set; } = new GTANetworkAPI.Vector3[]
         {
             new GTANetworkAPI.Vector3(552.8169f, -27.8083f, 94.87936f),
             new GTANetworkAPI.Vector3(758.5276f, 1273.74f, 360.2965f),
@@ -25,37 +24,61 @@ namespace SaltyServer
             new GTANetworkAPI.Vector3(-448.2019f, 6019.807f, 36.62916f)
         };
 
-        public static VoiceClient[] VoiceClients => VoiceManager._voiceClients.Values.ToArray();
-        private static Dictionary<GTANetworkAPI.Player, VoiceClient> _voiceClients = new Dictionary<GTANetworkAPI.Player, VoiceClient>();
+        public VoiceClient[] VoiceClients => this._voiceClients.Values.ToArray();
+        private Dictionary<GTANetworkAPI.Player, VoiceClient> _voiceClients = new Dictionary<GTANetworkAPI.Player, VoiceClient>();
 
-        public static RadioChannel[] RadioChannels => VoiceManager._radioChannels.ToArray();
-        private static List<RadioChannel> _radioChannels = new List<RadioChannel>();
+        public RadioChannel[] RadioChannels => this._radioChannels.ToArray();
+        private List<RadioChannel> _radioChannels = new List<RadioChannel>();
+        #endregion
+
+        #region CTOR
+        public VoiceManager()
+        {
+            VoiceManager.Instance = this;
+        }
         #endregion
 
         #region Server Events
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.ResourceStart)]
         public void OnResourceStart()
         {
-            VoiceManager.ServerUniqueIdentifier = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "ServerUniqueIdentifier");
-            VoiceManager.RequiredUpdateBranch = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "RequiredUpdateBranch");
-            VoiceManager.MinimumPluginVersion = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "MinimumPluginVersion");
-            VoiceManager.SoundPack = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SoundPack");
-            VoiceManager.IngameChannel = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "IngameChannel");
-            VoiceManager.IngameChannelPassword = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "IngameChannelPassword");
-            VoiceManager.SwissChannels = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SwissChannelIds").Split(',').Select(s => UInt64.Parse(s)).ToArray();
+            this.ServerUniqueIdentifier = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "ServerUniqueIdentifier");
+            this.MinimumPluginVersion = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "MinimumPluginVersion");
+            this.SoundPack = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SoundPack");
+            this.IngameChannel = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "IngameChannel");
+            this.IngameChannelPassword = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "IngameChannelPassword");
+            this.SwissChannels = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SwissChannelIds").Split(',').Select(s => UInt64.Parse(s)).ToArray();
         }
 
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.PlayerConnected)]
         public void OnPlayerConnected(GTANetworkAPI.Player client)
         {
-            VoiceClient voiceClient = new VoiceClient(client, VoiceManager.GetTeamSpeakName(), SaltyShared.SharedData.VoiceRanges[1]);
+            VoiceClient voiceClient;
 
-            lock (VoiceManager._voiceClients)
+            lock (this._voiceClients)
             {
-                VoiceManager._voiceClients.Add(client, voiceClient);
+                voiceClient = new VoiceClient(client, this.GetTeamSpeakName(), SaltyShared.SharedData.VoiceRanges[1]);
+
+                this._voiceClients.Add(client, voiceClient);
             }
 
-            client.TriggerEvent(SaltyShared.Event.SaltyChat_Initialize, voiceClient.TeamSpeakName, VoiceManager.ServerUniqueIdentifier, VoiceManager.SoundPack, VoiceManager.IngameChannel, VoiceManager.IngameChannelPassword, Newtonsoft.Json.JsonConvert.SerializeObject(VoiceManager.SwissChannels));
+            client.TriggerEvent(
+                SaltyShared.Event.SaltyChat_Initialize,
+                voiceClient.TeamSpeakName,
+                this.ServerUniqueIdentifier,
+                this.SoundPack,
+                this.IngameChannel,
+                this.IngameChannelPassword,
+                Newtonsoft.Json.JsonConvert.SerializeObject(this.SwissChannels),
+                Newtonsoft.Json.JsonConvert.SerializeObject(this.RadioTowers)
+            );
+
+            foreach (VoiceClient cl in this.VoiceClients)
+            {
+                client.TriggerEvent(SaltyShared.Event.SaltyChat_UpdateClient, cl.Player.Handle.Value, cl.TeamSpeakName, cl.VoiceRange);
+
+                cl.Player.TriggerEvent(SaltyShared.Event.SaltyChat_UpdateClient, voiceClient.Player.Handle.Value, voiceClient.TeamSpeakName, voiceClient.VoiceRange);
+            }
         }
 
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.PlayerDisconnected)]
@@ -63,20 +86,20 @@ namespace SaltyServer
         {
             VoiceClient voiceClient;
 
-            lock (VoiceManager._voiceClients)
+            lock (this._voiceClients)
             {
-                if (!VoiceManager._voiceClients.TryGetValue(client, out voiceClient))
+                if (!this._voiceClients.TryGetValue(client, out voiceClient))
                     return;
 
-                VoiceManager._voiceClients.Remove(client);
+                this._voiceClients.Remove(client);
             }
 
-            foreach (RadioChannel radioChannel in VoiceManager.RadioChannels.Where(c => c.IsMember(voiceClient)))
+            foreach (RadioChannel radioChannel in this.RadioChannels.Where(c => c.IsMember(voiceClient)))
             {
                 radioChannel.RemoveMember(voiceClient);
             }
 
-            foreach (VoiceClient cl in VoiceManager.VoiceClients)
+            foreach (VoiceClient cl in this.VoiceClients)
             {
                 cl.Player.TriggerEvent(SaltyShared.Event.SaltyChat_Disconnected, voiceClient.Player.Handle.Value);
             }
@@ -85,50 +108,29 @@ namespace SaltyServer
 
         #region Remote Events
         [GTANetworkAPI.RemoteEvent(SaltyShared.Event.SaltyChat_CheckVersion)]
-        public void OnCheckVersion(GTANetworkAPI.Player player, string branch, string version)
+        public void OnCheckVersion(GTANetworkAPI.Player player, string version)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
-            if (!VoiceManager.IsVersionAccepted(branch, version))
+            if (!this.IsVersionAccepted(version))
             {
-                player.Kick($"[Salty Chat] Required Branch: {VoiceManager.RequiredUpdateBranch} | Required Version: {VoiceManager.MinimumPluginVersion}");
+                player.Kick($"[Salty Chat] Required Version: {this.MinimumPluginVersion}");
                 return;
-            }
-
-            foreach (VoiceClient cl in VoiceManager.VoiceClients)
-            {
-                player.TriggerEvent(SaltyShared.Event.SaltyChat_UpdateClient, cl.Player.Handle.Value, cl.TeamSpeakName, cl.VoiceRange);
-
-                cl.Player.TriggerEvent(SaltyShared.Event.SaltyChat_UpdateClient, voiceClient.Player.Handle.Value, voiceClient.TeamSpeakName, voiceClient.VoiceRange);
-            }
-
-            player.TriggerEvent(SaltyShared.Event.SaltyChat_UpdateRadioTowers, Newtonsoft.Json.JsonConvert.SerializeObject(VoiceManager.RadioTowers));
-        }
-
-        [GTANetworkAPI.RemoteEvent(SaltyShared.Event.SaltyChat_IsTalking)]
-        public void OnIsTalking(GTANetworkAPI.Player player, bool isTalking)
-        {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
-                return;
-
-            foreach (VoiceClient client in VoiceManager.VoiceClients)
-            {
-                client.Player.TriggerEvent(SaltyShared.Event.SaltyChat_IsTalking, player.Handle.Value, isTalking);
             }
         }
 
         [GTANetworkAPI.RemoteEvent(SaltyShared.Event.SaltyChat_SetVoiceRange)]
         public void OnSetVoiceRange(GTANetworkAPI.Player player, float voiceRange)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
             if (Array.IndexOf(SaltyShared.SharedData.VoiceRanges, voiceRange) >= 0)
             {
                 voiceClient.VoiceRange = voiceRange;
 
-                foreach (VoiceClient client in VoiceManager.VoiceClients)
+                foreach (VoiceClient client in this.VoiceClients)
                 {
                     client.Player.TriggerEvent(SaltyShared.Event.SaltyChat_UpdateClient, player.Handle.Value, voiceClient.TeamSpeakName, voiceClient.VoiceRange);
                 }
@@ -143,7 +145,7 @@ namespace SaltyServer
         {
             bool toggle = String.Equals(toggleString, "true", StringComparison.OrdinalIgnoreCase);
 
-            VoiceManager.SetRadioSpeaker(player, toggle);
+            this.SetRadioSpeaker(player, toggle);
 
             player.SendChatMessage("Speaker", $"The speaker is now {(toggle ? "on" : "off")}.");
         }
@@ -151,7 +153,7 @@ namespace SaltyServer
         [GTANetworkAPI.Command("joinradio")]
         public void OnJoinRadioChannel(GTANetworkAPI.Player player, string channelName)
         {
-            VoiceManager.JoinRadioChannel(player, channelName);
+            this.JoinRadioChannel(player, channelName);
 
             player.SendChatMessage("Radio", $"You joined channel \"{channelName}\".");
         }
@@ -159,7 +161,7 @@ namespace SaltyServer
         [GTANetworkAPI.Command("leaveradio")]
         public void OnLeaveRadioChannel(GTANetworkAPI.Player player, string channelName)
         {
-            VoiceManager.LeaveRadioChannel(player, channelName);
+            this.LeaveRadioChannel(player, channelName);
 
             player.SendChatMessage("Radio", $"You left channel \"{channelName}\".");
         }
@@ -170,10 +172,10 @@ namespace SaltyServer
         [GTANetworkAPI.RemoteEvent(SaltyShared.Event.SaltyChat_IsSending)]
         public void OnSendingOnRadio(GTANetworkAPI.Player player, string radioChannelName, bool isSending)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
-            RadioChannel radioChannel = VoiceManager.GetRadioChannel(radioChannelName, false);
+            RadioChannel radioChannel = this.GetRadioChannel(radioChannelName, false);
 
             if (radioChannel == null || !radioChannel.IsMember(voiceClient))
                 return;
@@ -183,66 +185,66 @@ namespace SaltyServer
         #endregion
 
         #region Methods (Radio)
-        public static RadioChannel GetRadioChannel(string name, bool create)
+        public RadioChannel GetRadioChannel(string name, bool create)
         {
             RadioChannel radioChannel;
 
-            lock (VoiceManager._radioChannels)
+            lock (this._radioChannels)
             {
-                radioChannel = VoiceManager.RadioChannels.FirstOrDefault(r => r.Name == name);
+                radioChannel = this.RadioChannels.FirstOrDefault(r => r.Name == name);
 
                 if (radioChannel == null && create)
                 {
                     radioChannel = new RadioChannel(name);
 
-                    VoiceManager._radioChannels.Add(radioChannel);
+                    this._radioChannels.Add(radioChannel);
                 }
             }
 
             return radioChannel;
         }
 
-        public static void SetRadioSpeaker(GTANetworkAPI.Player player, bool toggle)
+        public void SetRadioSpeaker(GTANetworkAPI.Player player, bool toggle)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
             voiceClient.RadioSpeaker = toggle;
         }
 
-        public static void JoinRadioChannel(GTANetworkAPI.Player player, string radioChannelName)
+        public void JoinRadioChannel(GTANetworkAPI.Player player, string radioChannelName)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
-            foreach (RadioChannel channel in VoiceManager.RadioChannels)
+            foreach (RadioChannel channel in this.RadioChannels)
             {
                 if (channel.IsMember(voiceClient))
                     return;
             }
 
-            RadioChannel radioChannel = VoiceManager.GetRadioChannel(radioChannelName, true);
+            RadioChannel radioChannel = this.GetRadioChannel(radioChannelName, true);
 
             radioChannel.AddMember(voiceClient);
         }
 
-        public static void LeaveRadioChannel(GTANetworkAPI.Player player)
+        public void LeaveRadioChannel(GTANetworkAPI.Player player)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
-            foreach (RadioChannel radioChannel in VoiceManager.RadioChannels.Where(r => r.IsMember(voiceClient)))
+            foreach (RadioChannel radioChannel in this.RadioChannels.Where(r => r.IsMember(voiceClient)))
             {
-                VoiceManager.LeaveRadioChannel(player, radioChannel.Name);
+                this.LeaveRadioChannel(player, radioChannel.Name);
             }
         }
 
-        public static void LeaveRadioChannel(GTANetworkAPI.Player player, string radioChannelName)
+        public void LeaveRadioChannel(GTANetworkAPI.Player player, string radioChannelName)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
-            RadioChannel radioChannel = VoiceManager.GetRadioChannel(radioChannelName, false);
+            RadioChannel radioChannel = this.GetRadioChannel(radioChannelName, false);
 
             if (radioChannel != null)
             {
@@ -250,17 +252,17 @@ namespace SaltyServer
 
                 if (radioChannel.Members.Length == 0)
                 {
-                    VoiceManager._radioChannels.Remove(radioChannel);
+                    this._radioChannels.Remove(radioChannel);
                 }
             }
         }
 
-        public static void SendingOnRadio(GTANetworkAPI.Player player, string radioChannelName, bool isSending)
+        public void SendingOnRadio(GTANetworkAPI.Player player, string radioChannelName, bool isSending)
         {
-            if (!VoiceManager.TryGetVoiceClient(player, out VoiceClient voiceClient))
+            if (!this.TryGetVoiceClient(player, out VoiceClient voiceClient))
                 return;
 
-            RadioChannel radioChannel = VoiceManager.GetRadioChannel(radioChannelName, false);
+            RadioChannel radioChannel = this.GetRadioChannel(radioChannelName, false);
 
             if (radioChannel == null || !radioChannel.IsMember(voiceClient))
                 return;
@@ -270,39 +272,31 @@ namespace SaltyServer
         #endregion
 
         #region Methods
-        internal static string GetTeamSpeakName()
+        internal string GetTeamSpeakName()
         {
             string name;
 
-            lock (VoiceManager._voiceClients)
+            do
             {
-                do
-                {
-                    name = Guid.NewGuid().ToString().Replace("-", "");
+                name = Guid.NewGuid().ToString().Replace("-", "");
 
-                    if (name.Length > 30)
-                    {
-                        name = name.Remove(29, name.Length - 30);
-                    }
+                if (name.Length > 30)
+                {
+                    name = name.Remove(29, name.Length - 30);
                 }
-                while (VoiceManager._voiceClients.Values.Any(c => c.TeamSpeakName == name));
             }
+            while (this._voiceClients.Values.Any(c => c.TeamSpeakName == name));
 
             return name;
         }
 
-        public static bool IsVersionAccepted(string branch, string version)
+        public bool IsVersionAccepted(string version)
         {
-            if (!String.IsNullOrWhiteSpace(VoiceManager.RequiredUpdateBranch) && VoiceManager.RequiredUpdateBranch != branch)
-            {
-                return false;
-            }
-
-            if (!String.IsNullOrWhiteSpace(VoiceManager.MinimumPluginVersion))
+            if (!String.IsNullOrWhiteSpace(this.MinimumPluginVersion))
             {
                 try
                 {
-                    string[] minimumVersionArray = VoiceManager.MinimumPluginVersion.Split('.');
+                    string[] minimumVersionArray = this.MinimumPluginVersion.Split('.');
                     string[] versionArray = version.Split('.');
 
                     int lengthCounter = 0;
@@ -342,11 +336,11 @@ namespace SaltyServer
         #endregion
 
         #region Helper
-        public static bool TryGetVoiceClient(GTANetworkAPI.Player client, out VoiceClient voiceClient)
+        public bool TryGetVoiceClient(GTANetworkAPI.Player client, out VoiceClient voiceClient)
         {
-            lock (VoiceManager._voiceClients)
+            lock (this._voiceClients)
             {
-                if (VoiceManager._voiceClients.TryGetValue(client, out voiceClient))
+                if (this._voiceClients.TryGetValue(client, out voiceClient))
                     return true;
             }
 

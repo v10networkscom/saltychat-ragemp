@@ -1,114 +1,102 @@
-﻿// Copyright (c) 2019 saltmine.de - https://github.com/saltminede
-
-using System;
+﻿using System;
 using System.Linq;
 using System.Collections.Generic;
 using RAGE.Elements;
+using SaltyShared;
 
 namespace SaltyClient
 {
     public class VoiceManager : RAGE.Events.Script
     {
         #region Props/Fields
-        public static string ServerUniqueIdentifier { get; private set; }
-        public static string SoundPack { get; private set; }
-        public static ulong IngameChannel { get; private set; }
-        public static string IngameChannelPassword { get; private set; }
-        public static ulong[] SwissChannels { get; private set; }
-        public static string TeamSpeakName { get; private set; }
-        public static float VoiceRange { get; private set; }
-        public static string RadioChannel { get; private set; }
+        public string ServerUniqueIdentifier { get; private set; }
+        public string SoundPack { get; private set; }
+        public ulong IngameChannel { get; private set; }
+        public string IngameChannelPassword { get; private set; }
+        public ulong[] SwissChannels { get; private set; }
+        public string TeamSpeakName { get; private set; }
+        public float VoiceRange { get; private set; }
+        public string RadioChannel { get; private set; }
 
-        private static RAGE.Ui.HtmlWindow _htmlWindow = default;
-        private static bool _isConnected { get; set; }
-        private static bool _isIngame { get; set; }
-        private static DateTime _nextUpdate = DateTime.Now;
-        private static DateTime _lastTick = DateTime.Now;
+        private RAGE.Ui.HtmlWindow _htmlWindow = default;
+        private bool _isConnected { get; set; }
+        private bool _isIngame { get; set; }
+        private DateTime _nextUpdate = DateTime.Now;
+        private DateTime _lastTick = DateTime.Now;
 
-        public static VoiceClient[] VoiceClients => VoiceManager._voiceClients.Values.ToArray();
-        private static Dictionary<ushort, VoiceClient> _voiceClients = new Dictionary<ushort, VoiceClient>();
+        public VoiceClient[] VoiceClients => this._voiceClients.Values.ToArray();
+        private Dictionary<ushort, VoiceClient> _voiceClients = new Dictionary<ushort, VoiceClient>();
 
-        public static bool IsEnabled { get; private set; } = false;
-        public static bool IsConnected => VoiceManager._htmlWindow != default && VoiceManager._isConnected;
-        public static bool IsReady => VoiceManager.IsConnected && VoiceManager._isIngame;
+        public TSVector[] RadioTowers { get; private set; }
 
-        public static bool IsTalking { get; private set; }
-        public static bool IsMicrophoneMuted { get; private set; }
-        public static bool IsSoundMuted { get; private set; }
-        #endregion
+        public bool IsEnabled { get; private set; } = false;
+        public bool IsConnected => this._htmlWindow != default && this._isConnected;
+        public bool IsReady => this.IsConnected && this._isIngame;
 
-        #region Voice Events
-        public static event OnSoundStateChangeDelegate OnSoundStateChange;
-        public delegate void OnSoundStateChangeDelegate(SoundEventArgs soundEventArgs);
-
-        public static event OnTalkingStateChangeDelegate OnTalkingStateChange;
-        public delegate void OnTalkingStateChangeDelegate(SoundEventArgs soundEventArgs);
-
-        public static event OnMicrophoneMuteStateChangeDelegate OnMicrophoneMuteStateChange;
-        public delegate void OnMicrophoneMuteStateChangeDelegate(SoundEventArgs soundEventArgs);
-
-        public static event OnSoundMuteStateChangeDelegate OnSoundMuteStateChange;
-        public delegate void OnSoundMuteStateChangeDelegate(SoundEventArgs soundEventArgs);
+        public bool IsMicrophoneMuted { get; private set; }
+        public bool IsMicrophoneEnabled { get; private set; }
+        public bool IsSoundMuted { get; private set; }
+        public bool IsSoundEnabled { get; private set; }
         #endregion
 
         #region CTOR
         public VoiceManager()
         {
             // RAGEMP Events
-            RAGE.Events.Tick += VoiceManager.OnTick;
+            RAGE.Events.Tick += this.OnTick;
 
             // Project Events
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_Initialize, VoiceManager.OnInitialize);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_UpdateClient, VoiceManager.OnUpdateVoiceClient);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_Disconnected, VoiceManager.OnPlayerDisconnect);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_IsTalking, VoiceManager.OnPlayerTalking);
+            RAGE.Events.Add(Event.SaltyChat_Initialize, this.OnInitialize);
+            RAGE.Events.Add(Event.SaltyChat_UpdateClient, this.OnUpdateVoiceClient);
+            RAGE.Events.Add(Event.SaltyChat_Disconnected, this.OnPlayerDisconnect);
 
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_PlayerDied, VoiceManager.OnPlayerDied);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_PlayerRevived, VoiceManager.OnPlayerRevived);
+            RAGE.Events.Add(Event.SaltyChat_PlayerDied, this.OnPlayerDied);
+            RAGE.Events.Add(Event.SaltyChat_PlayerRevived, this.OnPlayerRevived);
 
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_EstablishedCall, VoiceManager.OnEstablishCall);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_EstablishedCallRelayed, VoiceManager.OnEstablishCallRelayed);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_EndCall, VoiceManager.OnEndCall);
+            RAGE.Events.Add(Event.SaltyChat_EstablishedCall, this.OnEstablishCall);
+            RAGE.Events.Add(Event.SaltyChat_EstablishedCallRelayed, this.OnEstablishCallRelayed);
+            RAGE.Events.Add(Event.SaltyChat_EndCall, this.OnEndCall);
 
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_SetRadioChannel, VoiceManager.OnSetRadioChannel);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_IsSending, VoiceManager.OnPlayerIsSending);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_IsSendingRelayed, VoiceManager.OnPlayerIsSendingRelayed);
-            RAGE.Events.Add(SaltyShared.Event.SaltyChat_UpdateRadioTowers, VoiceManager.OnUpdateRadioTowers);
+            RAGE.Events.Add(Event.SaltyChat_SetRadioChannel, this.OnSetRadioChannel);
+            RAGE.Events.Add(Event.SaltyChat_IsSending, this.OnPlayerIsSending);
+            RAGE.Events.Add(Event.SaltyChat_IsSendingRelayed, this.OnPlayerIsSendingRelayed);
+            RAGE.Events.Add(Event.SaltyChat_UpdateRadioTowers, this.OnUpdateRadioTowers);
 
             // Salty Chat Events
-            RAGE.Events.Add("SaltyChat_OnConnected", VoiceManager.OnPluginConnected);
-            RAGE.Events.Add("SaltyChat_OnDisconnected", VoiceManager.OnPluginDisconnected);
-            RAGE.Events.Add("SaltyChat_OnMessage", VoiceManager.OnPluginMessage);
-            RAGE.Events.Add("SaltyChat_OnError", VoiceManager.OnPluginError);
+            RAGE.Events.Add("SaltyChat_OnConnected", this.OnPluginConnected);
+            RAGE.Events.Add("SaltyChat_OnDisconnected", this.OnPluginDisconnected);
+            RAGE.Events.Add("SaltyChat_OnMessage", this.OnPluginMessage);
+            RAGE.Events.Add("SaltyChat_OnError", this.OnPluginError);
         }
         #endregion
 
-        #region Events
+        #region Events (Handling)
         /// <summary>
         /// Trigger if plugin should be initialized
         /// </summary>
-        /// <param name="args">args[0] - teamSpeakName | args[1] - serverUniqueIdentifier | args[2] - soundPack | args[3] - channelId | args[4] - channelPassword | </param>
-        public static void OnInitialize(object[] args)
+        /// <param name="args">args[0] - teamSpeakName | args[1] - serverUniqueIdentifier | args[2] - soundPack | args[3] - channelId | args[4] - channelPassword | args[5] - swissChannels | args[6] - towerPositions</param>
+        public void OnInitialize(object[] args)
         {
-            VoiceManager.TeamSpeakName = (string)args[0];
-            VoiceManager.ServerUniqueIdentifier = (string)args[1];
-            VoiceManager.SoundPack = (string)args[2];
-            VoiceManager.IngameChannel = Convert.ToUInt64((string)args[3]);
-            VoiceManager.IngameChannelPassword = (string)args[4];
-            VoiceManager.SwissChannels = Newtonsoft.Json.JsonConvert.DeserializeObject<ulong[]>((string)args[5]);
+            this.TeamSpeakName = (string)args[0];
+            this.ServerUniqueIdentifier = (string)args[1];
+            this.SoundPack = (string)args[2];
+            this.IngameChannel = Convert.ToUInt64((string)args[3]);
+            this.IngameChannelPassword = (string)args[4];
+            this.SwissChannels = Newtonsoft.Json.JsonConvert.DeserializeObject<ulong[]>((string)args[5]);
+            this.RadioTowers = Newtonsoft.Json.JsonConvert.DeserializeObject<TSVector[]>((string)args[6]);
 
-            VoiceManager.IsEnabled = true;
+            this.IsEnabled = true;
 
-            VoiceManager._htmlWindow = new RAGE.Ui.HtmlWindow("package://Voice/SaltyWebSocket.html");
-            VoiceManager._htmlWindow.ExecuteJs("connect('127.0.0.1:8088')");
-            //VoiceManager._htmlWindow.Active = false;
+            this._htmlWindow = new RAGE.Ui.HtmlWindow("package://Voice/SaltyWebSocket.html");
+            this._htmlWindow.ExecuteJs("connect('127.0.0.1:38088')");
+            //this._htmlWindow.Active = false;
         }
 
         /// <summary>
         /// Update Voice Client
         /// </summary>
         /// <param name="args">args[0] - handle | args[1] - teamSpeakName | args[2] voiceRange</param>
-        private static void OnUpdateVoiceClient(object[] args)
+        private void OnUpdateVoiceClient(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
             string teamSpeakName = (string)args[1];
@@ -121,20 +109,20 @@ namespace SaltyClient
 
             if (Player.LocalPlayer == player)
             {
-                VoiceManager.VoiceRange = voiceRange;
+                this.VoiceRange = voiceRange;
             }
             else
             {
-                lock (VoiceManager._voiceClients)
+                lock (this._voiceClients)
                 {
-                    if (VoiceManager._voiceClients.TryGetValue(handle, out VoiceClient voiceClient))
+                    if (this._voiceClients.TryGetValue(handle, out VoiceClient voiceClient))
                     {
                         voiceClient.TeamSpeakName = teamSpeakName;
                         voiceClient.VoiceRange = voiceRange;
                     }
                     else
                     {
-                        VoiceManager._voiceClients.Add(handle, new VoiceClient(player, teamSpeakName, voiceRange));
+                        this._voiceClients.Add(handle, new VoiceClient(player, teamSpeakName, voiceRange));
                     }
                 }
             }
@@ -144,17 +132,23 @@ namespace SaltyClient
         /// Remove a disconnected player
         /// </summary>
         /// <param name="args">args[0] - handle</param>
-        private static void OnPlayerDisconnect(object[] args)
+        private void OnPlayerDisconnect(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
 
-            lock (VoiceManager._voiceClients)
+            lock (this._voiceClients)
             {
-                if (VoiceManager._voiceClients.TryGetValue(handle, out VoiceClient voiceClient))
+                if (this._voiceClients.TryGetValue(handle, out VoiceClient voiceClient))
                 {
-                    VoiceManager._voiceClients.Remove(handle);
+                    this._voiceClients.Remove(handle);
 
-                    VoiceManager.ExecuteCommand(new PluginCommand(Command.RemovePlayer, VoiceManager.ServerUniqueIdentifier, new PlayerState(voiceClient.TeamSpeakName)));
+                    this.ExecuteCommand(
+                        new PluginCommand(
+                            Command.RemovePlayer,
+                            this.ServerUniqueIdentifier,
+                            new PlayerState(voiceClient.TeamSpeakName)
+                        )
+                    );
                 }
             }
         }
@@ -163,13 +157,13 @@ namespace SaltyClient
         /// Tell plugin the player is dead, so we don't hear him anymore
         /// </summary>
         /// <param name="args">args[0] - handle</param>
-        private static void OnPlayerDied(object[] args)
+        private void OnPlayerDied(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
 
             Player player = Entities.Players.GetAtRemote(handle);
 
-            if (player == null || !VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
+            if (player == null || !this.TryGetVoiceClient(handle, out VoiceClient voiceClient))
                 return;
 
             voiceClient.IsAlive = false;
@@ -179,58 +173,40 @@ namespace SaltyClient
         /// Tell plugin the player is alive again, se we can hear him
         /// </summary>
         /// <param name="args">[0] - handle</param>
-        public static void OnPlayerRevived(object[] args)
+        public void OnPlayerRevived(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
 
             Player player = Entities.Players.GetAtRemote(handle);
 
-            if (player == null || !VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
+            if (player == null || !this.TryGetVoiceClient(handle, out VoiceClient voiceClient))
                 return;
 
             voiceClient.IsAlive = true;
         }
+        #endregion
 
-        /// <summary>
-        /// A player starts/stops talking
-        /// </summary>
-        /// <param name="args">args[0] - handle | args[1] - <see cref="bool"/> isTalking</param>
-        private static void OnPlayerTalking(object[] args)
-        {
-            ushort handle = Convert.ToUInt16(args[0]);
-            bool isTalking = (bool)args[1];
-
-            Player player = Entities.Players.GetAtRemote(handle);
-
-            if (player == null)
-                return;
-
-            if (isTalking)
-                player.PlayFacialAnim("mic_chatter", "mp_facial");
-            else
-                player.PlayFacialAnim("mood_normal_1", "facials@gen_male@variations@normal");
-        }
-
+        #region Events (Phone)
         /// <summary>
         /// Tell the plugin we have a new call partner
         /// </summary>
         /// <param name="args">args[0] - handle</param>
-        private static void OnEstablishCall(object[] args)
+        private void OnEstablishCall(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
 
             Player player = Entities.Players.GetAtRemote(handle);
 
-            if (player == null || !VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
+            if (player == null || !this.TryGetVoiceClient(handle, out VoiceClient voiceClient))
                 return;
 
-            RAGE.Vector3 ownPosition = RAGE.Elements.Player.LocalPlayer.Position;
+            RAGE.Vector3 ownPosition = Player.LocalPlayer.Position;
             RAGE.Vector3 playerPosition = player.Position;
 
-            VoiceManager.ExecuteCommand(
+            this.ExecuteCommand(
                 new PluginCommand(
                     Command.PhoneCommunicationUpdate,
-                    VoiceManager.ServerUniqueIdentifier,
+                    this.ServerUniqueIdentifier,
                     new PhoneCommunication(
                         voiceClient.TeamSpeakName,
                         RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(ownPosition.X, ownPosition.Y, ownPosition.Z)) +
@@ -244,7 +220,7 @@ namespace SaltyClient
         /// Tell the plugin we have a new call partner
         /// </summary>
         /// <param name="args">args[0] - handle | args[1] - bool | args[2] - string[]</param>
-        private static void OnEstablishCallRelayed(object[] args)
+        private void OnEstablishCallRelayed(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
             bool direct = (bool)args[1];
@@ -252,16 +228,16 @@ namespace SaltyClient
 
             Player player = Entities.Players.GetAtRemote(handle);
 
-            if (player == null || !VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
+            if (player == null || !this.TryGetVoiceClient(handle, out VoiceClient voiceClient))
                 return;
 
-            RAGE.Vector3 ownPosition = RAGE.Elements.Player.LocalPlayer.Position;
+            RAGE.Vector3 ownPosition = Player.LocalPlayer.Position;
             RAGE.Vector3 playerPosition = player.Position;
 
-            VoiceManager.ExecuteCommand(
+            this.ExecuteCommand(
                 new PluginCommand(
                     Command.PhoneCommunicationUpdate,
-                    VoiceManager.ServerUniqueIdentifier,
+                    this.ServerUniqueIdentifier,
                     new PhoneCommunication(
                         voiceClient.TeamSpeakName,
                         RAGE.Game.Zone.GetZoneScumminess(RAGE.Game.Zone.GetZoneAtCoords(ownPosition.X, ownPosition.Y, ownPosition.Z)) +
@@ -277,43 +253,45 @@ namespace SaltyClient
         /// Tell the plugin to end the call
         /// </summary>
         /// <param name="args">args[0] - handle</param>
-        private static void OnEndCall(object[] args)
+        private void OnEndCall(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
 
             Player player = Entities.Players.GetAtRemote(handle);
 
-            if (player == null || !VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
+            if (player == null || !this.TryGetVoiceClient(handle, out VoiceClient voiceClient))
                 return;
 
-            VoiceManager.ExecuteCommand(
+            this.ExecuteCommand(
                 new PluginCommand(
                     Command.StopPhoneCommunication,
-                    VoiceManager.ServerUniqueIdentifier,
+                    this.ServerUniqueIdentifier,
                     new PhoneCommunication(
                         voiceClient.TeamSpeakName
                     )
                 )
             );
         }
+        #endregion
 
+        #region Events (Phone)
         /// <summary>
         /// Sets players radio channel
         /// </summary>
         /// <param name="args">args[0] - radioChannel</param>
-        private static void OnSetRadioChannel(object[] args)
+        private void OnSetRadioChannel(object[] args)
         {
             string radioChannel = (string)args[0];
 
             if (String.IsNullOrWhiteSpace(radioChannel))
             {
-                VoiceManager.RadioChannel = null;
-                VoiceManager.PlaySound("leaveRadioChannel", false, "radio");
+                this.RadioChannel = null;
+                this.PlaySound("leaveRadioChannel", false, "radio");
             }
             else
             {
-                VoiceManager.RadioChannel = radioChannel;
-                VoiceManager.PlaySound("enterRadioChannel", false, "radio");
+                this.RadioChannel = radioChannel;
+                this.PlaySound("enterRadioChannel", false, "radio");
             }
         }
 
@@ -321,16 +299,16 @@ namespace SaltyClient
         /// When someone is talking on our radio channel
         /// </summary>
         /// <param name="args">args[0] - handle | args[1] - isOnRadio</param>
-        private static void OnPlayerIsSending(object[] args)
+        private void OnPlayerIsSending(object[] args)
         {
-            VoiceManager.OnPlayerIsSendingRelayed(new object[] { args[0], args[1], args[2], true, "[]" });
+            this.OnPlayerIsSendingRelayed(new object[] { args[0], args[1], args[2], true, "[]" });
         }
 
         /// <summary>
         /// When someone is talking on our radio channel
         /// </summary>
         /// <param name="args">args[0] - handle | args[1] - isOnRadio | args[2] - stateChange | args[3] - direct | args[4] - relays</param>
-        private static void OnPlayerIsSendingRelayed(object[] args)
+        private void OnPlayerIsSendingRelayed(object[] args)
         {
             ushort handle = Convert.ToUInt16(args[0]);
             bool isSending = (bool)args[1];
@@ -338,6 +316,7 @@ namespace SaltyClient
             bool direct = (bool)args[3];
             string[] relays = Newtonsoft.Json.JsonConvert.DeserializeObject<string[]>((string)args[4]);
 
+            string playerName = null;
             Player player = Entities.Players.GetAtRemote(handle);
 
             if (player == null)
@@ -345,77 +324,30 @@ namespace SaltyClient
 
             if (Player.LocalPlayer == player)
             {
-                if (isSending)
-                {
-                    VoiceManager.ExecuteCommand(
-                        new PluginCommand(
-                            Command.RadioCommunicationUpdate,
-                            VoiceManager.ServerUniqueIdentifier,
-                            new RadioCommunication(
-                                VoiceManager.TeamSpeakName,
-                                RadioType.LongRange,
-                                RadioType.LongRange,
-                                stateChange,
-                                direct,
-                                false,
-                                relays
-                            )
-                        )
-                    );
-                }
-                else
-                {
-                    VoiceManager.ExecuteCommand(
-                        new PluginCommand(
-                            Command.StopRadioCommunication,
-                            VoiceManager.ServerUniqueIdentifier,
-                            new RadioCommunication(
-                                VoiceManager.TeamSpeakName,
-                                RadioType.None,
-                                RadioType.None,
-                                stateChange,
-                                false
-                            )
-                        )
-                    );
-                }
+                playerName = this.TeamSpeakName;
             }
-            else if (VoiceManager.TryGetVoiceClient(handle, out VoiceClient voiceClient))
+            else if (this.TryGetVoiceClient(handle, out VoiceClient voiceClient))
             {
-                if (isSending)
-                {
-                    VoiceManager.ExecuteCommand(
-                        new PluginCommand(
-                            Command.RadioCommunicationUpdate,
-                            VoiceManager.ServerUniqueIdentifier,
-                            new RadioCommunication(
-                                voiceClient.TeamSpeakName,
-                                RadioType.LongRange,
-                                RadioType.LongRange,
-                                stateChange,
-                                direct,
-                                false,
-                                relays
-                            )
+                playerName = voiceClient.TeamSpeakName;
+            }
+
+            if (playerName != null)
+            {
+                this.ExecuteCommand(
+                    new PluginCommand(
+                        isSending ? Command.RadioCommunicationUpdate : Command.StopRadioCommunication,
+                        this.ServerUniqueIdentifier,
+                        new RadioCommunication(
+                            playerName,
+                            RadioType.LongRange,
+                            RadioType.LongRange,
+                            stateChange,
+                            direct,
+                            false,
+                            relays
                         )
-                    );
-                }
-                else
-                {
-                    VoiceManager.ExecuteCommand(
-                        new PluginCommand(
-                            Command.StopRadioCommunication,
-                            VoiceManager.ServerUniqueIdentifier,
-                            new RadioCommunication(
-                                voiceClient.TeamSpeakName,
-                                RadioType.None,
-                                RadioType.None,
-                                stateChange,
-                                false
-                            )
-                        )
-                    );
-                }
+                    )
+                );
             }
         }
 
@@ -423,54 +355,19 @@ namespace SaltyClient
         /// Tell plugin where all radio towers are
         /// </summary>
         /// <param name="args">[0] - towerPositions</param>
-        private static void OnUpdateRadioTowers(object[] args)
+        private void OnUpdateRadioTowers(object[] args)
         {
-            TSVector[] towerPositions = Newtonsoft.Json.JsonConvert.DeserializeObject<TSVector[]>((string)args[0]);
+            this.RadioTowers = Newtonsoft.Json.JsonConvert.DeserializeObject<TSVector[]>((string)args[0]);
 
-            VoiceManager.ExecuteCommand(
+            this.ExecuteCommand(
                 new PluginCommand(
                     Command.RadioTowerUpdate,
-                    VoiceManager.ServerUniqueIdentifier,
+                    this.ServerUniqueIdentifier,
                     new RadioTower(
-                        towerPositions
+                        this.RadioTowers
                     )
                 )
             );
-        }
-
-        private static void OnTick(List<RAGE.Events.TickNametagData> nametags)
-        {
-            RAGE.Game.Pad.DisableControlAction(1, (int)RAGE.Game.Control.EnterCheatCode, true);
-            RAGE.Game.Pad.DisableControlAction(1, (int)RAGE.Game.Control.PushToTalk, true);
-
-            VoiceManager._lastTick = DateTime.Now;
-
-            // Calculate player states
-            if (VoiceManager.IsReady && VoiceManager._lastTick > VoiceManager._nextUpdate)
-            {
-                VoiceManager.PlayerStateUpdate();
-
-                VoiceManager._nextUpdate = DateTime.Now.AddMilliseconds(300);
-            }
-
-            // Lets the player talk on his radio channel with "N"
-            if (!String.IsNullOrWhiteSpace(VoiceManager.RadioChannel))
-            {
-                if (RAGE.Game.Pad.IsDisabledControlJustPressed(1, (int)RAGE.Game.Control.PushToTalk))
-                {
-                    RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_IsSending, VoiceManager.RadioChannel, true);
-                }
-                else if (RAGE.Game.Pad.IsDisabledControlJustReleased(1, (int)RAGE.Game.Control.PushToTalk))
-                {
-                    RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_IsSending, VoiceManager.RadioChannel, false);
-                }
-            }
-
-            // Lets the player change his voice range with "^"
-            if (RAGE.Game.Pad.IsDisabledControlJustPressed(1, (int)RAGE.Game.Control.EnterCheatCode))
-            {
-                VoiceManager.ToggleVoiceRange();
-            }
         }
         #endregion
 
@@ -479,103 +376,124 @@ namespace SaltyClient
         /// Plugin connected to WebSocket
         /// </summary>
         /// <param name="args"></param>
-        public static void OnPluginConnected(object[] args)
+        public void OnPluginConnected(object[] args)
         {
-            VoiceManager._isConnected = true;
+            this._isConnected = true;
 
-            VoiceManager.InitiatePlugin();
+            this.InitiatePlugin();
         }
 
         /// <summary>
         /// Plugin disconnected from WebSocket
         /// </summary>
         /// <param name="args"></param>
-        public static void OnPluginDisconnected(object[] args)
+        public void OnPluginDisconnected(object[] args)
         {
-            VoiceManager._isConnected = false;
+            this._isConnected = false;
 
             // need that weird lastTick workaround, because tick is the only event that isn't fired after a disconnect and we don't want to reconnect to the plugin
-            if (VoiceManager._lastTick.AddSeconds(1) > DateTime.Now)
-                VoiceManager._htmlWindow.ExecuteJs("connect()");
+            if (this._lastTick.AddSeconds(1) > DateTime.Now)
+                this._htmlWindow.ExecuteJs("connect()");
         }
 
         /// <summary>
         /// Plugin state update
         /// </summary>
         /// <param name="args">[0] - <see cref="PluginCommand"/> as json</param>
-        public static void OnPluginMessage(object[] args)
+        public void OnPluginMessage(object[] args)
         {
-            PluginCommand pluginCommand = PluginCommand.Deserialize((string)args[0]);
+            PluginCommand pluginCommand = Newtonsoft.Json.JsonConvert.DeserializeObject<PluginCommand>((string)args[0]);
+
+            if (pluginCommand.ServerUniqueIdentifier != this.ServerUniqueIdentifier)
+                return;
 
             switch (pluginCommand.Command)
             {
-                case Command.Ping:
+                case Command.PluginState:
                     {
-                        // need that weird lastTick workaround, because tick is the only event that isn't fired after a disconnect and we want the plugin to time out
-                        if (pluginCommand.ServerUniqueIdentifier == VoiceManager.ServerUniqueIdentifier && VoiceManager._lastTick.AddSeconds(1) > DateTime.Now)
-                            VoiceManager.ExecuteCommand(new PluginCommand(VoiceManager.ServerUniqueIdentifier));
+                        if (pluginCommand.TryGetPayload(out PluginState pluginState))
+                        {
+                            RAGE.Events.CallRemote(Event.SaltyChat_CheckVersion, pluginState.Version);
+
+                            this.ExecuteCommand(
+                                new PluginCommand(
+                                    Command.RadioTowerUpdate,
+                                    this.ServerUniqueIdentifier,
+                                    new RadioTower(this.RadioTowers)
+                                )
+                            );
+                        }
 
                         break;
                     }
                 case Command.Reset:
                     {
                         // need that weird lastTick workaround, because tick is the only event that isn't fired after a disconnect and we want the plugin to time out
-                        if (DateTime.Now > VoiceManager._lastTick.AddSeconds(1))
+                        if (DateTime.Now > this._lastTick.AddSeconds(1))
                             break;
 
-                        VoiceManager._isIngame = false;
+                        this._isIngame = false;
 
-                        VoiceManager.InitiatePlugin();
+                        this.InitiatePlugin();
 
                         break;
                     }
-                case Command.StateUpdate:
+                case Command.Ping:
                     {
-                        if (!pluginCommand.TryGetState(out PluginState pluginState))
-                            break;
+                        // need that weird lastTick workaround, because tick is the only event that isn't fired after a disconnect and we want the plugin to time out
+                        if (this._lastTick.AddSeconds(1) > DateTime.Now)
+                            this.ExecuteCommand(new PluginCommand(this.ServerUniqueIdentifier));
 
-                        if (pluginState.IsReady != VoiceManager._isIngame)
+                        break;
+                    }
+                case Command.InstanceState:
+                    {
+                        if (pluginCommand.TryGetPayload(out InstanceState instanceState))
                         {
-                            RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_CheckVersion, pluginState.UpdateBranch, pluginState.Version);
-
-                            VoiceManager._isIngame = pluginState.IsReady;
+                            this._isIngame = instanceState.IsReady;
                         }
 
-                        bool hasTalkingChanged = false;
-                        bool hasMicMutedChanged = false;
-                        bool hasSoundMutedChanged = false;
-
-                        if (pluginState.IsTalking != VoiceManager.IsTalking)
+                        break;
+                    }
+                case Command.SoundState:
+                    {
+                        if (!pluginCommand.TryGetPayload(out SoundState soundState))
                         {
-                            VoiceManager.IsTalking = pluginState.IsTalking;
-                            hasTalkingChanged = true;
+                            if (soundState.IsMicrophoneMuted != this.IsMicrophoneMuted)
+                            {
+                                this.IsMicrophoneMuted = soundState.IsMicrophoneMuted;
 
-                            RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_IsTalking, VoiceManager.IsTalking);
+                                RAGE.Events.CallRemote(Event.SaltyChat_MicStateChanged, this.IsMicrophoneMuted);
+                            }
+
+                            if (soundState.IsMicrophoneEnabled != this.IsMicrophoneEnabled)
+                            {
+                                this.IsMicrophoneEnabled = soundState.IsMicrophoneEnabled;
+
+                                RAGE.Events.CallRemote(Event.SaltyChat_MicEnabledChanged, this.IsMicrophoneEnabled);
+                            }
+
+                            if (soundState.IsSoundMuted != this.IsSoundMuted)
+                            {
+                                this.IsSoundMuted = soundState.IsSoundMuted;
+
+                                RAGE.Events.CallRemote(Event.SaltyChat_SoundStateChanged, this.IsSoundMuted);
+                            }
+
+                            if (soundState.IsSoundEnabled != this.IsSoundEnabled)
+                            {
+                                this.IsSoundEnabled = soundState.IsSoundEnabled;
+
+                                RAGE.Events.CallRemote(Event.SaltyChat_SoundEnabledChanged, this.IsSoundEnabled);
+                            }
                         }
 
-                        if (pluginState.IsMicrophoneMuted != VoiceManager.IsMicrophoneMuted)
-                        {
-                            VoiceManager.IsMicrophoneMuted = pluginState.IsMicrophoneMuted;
-                            hasMicMutedChanged = true;
-                        }
-
-                        if (pluginState.IsSoundMuted != VoiceManager.IsSoundMuted)
-                        {
-                            VoiceManager.IsSoundMuted = pluginState.IsSoundMuted;
-                            hasSoundMutedChanged = true;
-                        }
-
-                        if (hasTalkingChanged)
-                            VoiceManager.OnTalkingStateChange?.Invoke(new SoundEventArgs());
-
-                        if (hasMicMutedChanged)
-                            VoiceManager.OnMicrophoneMuteStateChange?.Invoke(new SoundEventArgs());
-
-                        if (hasSoundMutedChanged)
-                            VoiceManager.OnSoundMuteStateChange?.Invoke(new SoundEventArgs());
-
-                        if (hasTalkingChanged || hasMicMutedChanged || hasSoundMutedChanged)
-                            VoiceManager.OnSoundStateChange?.Invoke(new SoundEventArgs());
+                        break;
+                    }
+                case Command.TalkState:
+                    {
+                        if (pluginCommand.TryGetPayload(out TalkState talkState))
+                            this.SetPlayerTalking(talkState.Name, talkState.IsTalking);
 
                         break;
                     }
@@ -586,14 +504,14 @@ namespace SaltyClient
         /// Plugin error
         /// </summary>
         /// <param name="args">[0] - <see cref="PluginCommand"/> as json</param>
-        public static void OnPluginError(object[] args)
+        public void OnPluginError(object[] args)
         {
             try
             {
                 PluginError pluginError = Newtonsoft.Json.JsonConvert.DeserializeObject<PluginError>((string)args[0]);
 
                 if (pluginError.Error == Error.AlreadyInGame)
-                    VoiceManager.InitiatePlugin(); // try again an hope that the game instance was reset on plugin side
+                    this.InitiatePlugin(); // try again an hope that the game instance was reset on plugin side
                 else
                     RAGE.Chat.Output($"Salty Chat -- Error: {pluginError.Error} - Message: {pluginError.Message}");
             }
@@ -604,16 +522,113 @@ namespace SaltyClient
         }
         #endregion
 
-        #region Methods
+        #region Tick
+        private void OnTick(List<RAGE.Events.TickNametagData> nametags)
+        {
+            RAGE.Game.Pad.DisableControlAction(1, (int)RAGE.Game.Control.EnterCheatCode, true);
+            RAGE.Game.Pad.DisableControlAction(1, (int)RAGE.Game.Control.PushToTalk, true);
+
+            this._lastTick = DateTime.Now;
+
+            // Calculate player states
+            if (this.IsReady && this._lastTick > this._nextUpdate)
+            {
+                this.PlayerStateUpdate();
+
+                this._nextUpdate = DateTime.Now.AddMilliseconds(300);
+            }
+
+            // Lets the player talk on his radio channel with "N"
+            if (!String.IsNullOrWhiteSpace(this.RadioChannel))
+            {
+                if (RAGE.Game.Pad.IsDisabledControlJustPressed(1, (int)RAGE.Game.Control.PushToTalk))
+                {
+                    RAGE.Events.CallRemote(Event.SaltyChat_IsSending, this.RadioChannel, true);
+                }
+                else if (RAGE.Game.Pad.IsDisabledControlJustReleased(1, (int)RAGE.Game.Control.PushToTalk))
+                {
+                    RAGE.Events.CallRemote(Event.SaltyChat_IsSending, this.RadioChannel, false);
+                }
+            }
+
+            // Lets the player change his voice range with "^"
+            if (RAGE.Game.Pad.IsDisabledControlJustPressed(1, (int)RAGE.Game.Control.EnterCheatCode))
+            {
+                this.ToggleVoiceRange();
+            }
+        }
+        #endregion
+
+        #region Methods (Proximity)
+        private void SetPlayerTalking(string teamSpeakName, bool isTalking)
+        {
+            Player player = null;
+            VoiceClient voiceClient = this.VoiceClients.FirstOrDefault(v => v.TeamSpeakName == teamSpeakName);
+
+            if (voiceClient != null)
+            {
+                player = voiceClient.Player;
+            }
+            else if (teamSpeakName == this.TeamSpeakName)
+            {
+                player = Player.LocalPlayer;
+
+                RAGE.Events.CallLocal(Event.SaltyChat_TalkStateChanged, isTalking);
+            }
+
+            if (player != null)
+            {
+                if (isTalking)
+                    player.PlayFacialAnim("mic_chatter", "mp_facial");
+                else
+                    player.PlayFacialAnim("mood_normal_1", "facials@gen_male@variations@normal");
+            }
+        }
+
+        /// <summary>
+        /// Toggles voice range through <see cref="SharedData.VoiceRanges"/>
+        /// </summary>
+        public void ToggleVoiceRange()
+        {
+            int index = Array.IndexOf(SharedData.VoiceRanges, this.VoiceRange);
+
+            if (index < 0)
+            {
+                RAGE.Events.CallRemote(Event.SaltyChat_SetVoiceRange, SharedData.VoiceRanges[1]);
+            }
+            else if (index + 1 >= SharedData.VoiceRanges.Length)
+            {
+                RAGE.Events.CallRemote(Event.SaltyChat_SetVoiceRange, SharedData.VoiceRanges[0]);
+            }
+            else
+            {
+                RAGE.Events.CallRemote(Event.SaltyChat_SetVoiceRange, SharedData.VoiceRanges[index + 1]);
+            }
+        }
+        #endregion
+
+        #region Methods (Plugin)
         /// <summary>
         /// Initiates the plugin
         /// </summary>
-        private static void InitiatePlugin()
+        private void InitiatePlugin()
         {
-            if (String.IsNullOrWhiteSpace(VoiceManager.TeamSpeakName))
+            if (String.IsNullOrWhiteSpace(this.TeamSpeakName))
                 return;
 
-            VoiceManager.ExecuteCommand(new PluginCommand(Command.Initiate, new GameInstance(VoiceManager.ServerUniqueIdentifier, VoiceManager.TeamSpeakName, VoiceManager.IngameChannel, VoiceManager.IngameChannelPassword == default ? String.Empty : VoiceManager.IngameChannelPassword, VoiceManager.SoundPack, VoiceManager.SwissChannels)));
+            this.ExecuteCommand(
+                new PluginCommand(
+                    Command.Initiate,
+                    new GameInstance(
+                        this.ServerUniqueIdentifier,
+                        this.TeamSpeakName,
+                        this.IngameChannel,
+                        String.IsNullOrEmpty(this.IngameChannelPassword) ? String.Empty : this.IngameChannelPassword,
+                        this.SoundPack,
+                        this.SwissChannels
+                    )
+                )
+            );
         }
 
         /// <summary>
@@ -622,38 +637,54 @@ namespace SaltyClient
         /// <param name="fileName">filename (without .wav) of the soundfile</param>
         /// <param name="loop">use <see cref="true"/> to let the plugin loop the sound</param>
         /// <param name="handle">use your own handle instead of the filename, so you can play the sound multiple times</param>
-        public static void PlaySound(string fileName, bool loop = false, string handle = null)
+        public void PlaySound(string fileName, bool loop = false, string handle = null)
         {
             if (String.IsNullOrWhiteSpace(handle))
                 handle = fileName;
 
-            VoiceManager.ExecuteCommand(new PluginCommand(Command.PlaySound, VoiceManager.ServerUniqueIdentifier, new Sound(fileName, loop, handle)));
+            this.ExecuteCommand(
+                new PluginCommand(
+                    Command.PlaySound,
+                    this.ServerUniqueIdentifier,
+                    new Sound(
+                        fileName,
+                        loop,
+                        handle
+                    )
+                )
+            );
         }
 
         /// <summary>
         /// Stops and dispose the sound
         /// </summary>
         /// <param name="handle">filename or handle of the sound</param>
-        public static void StopSound(string handle)
+        public void StopSound(string handle)
         {
-            VoiceManager.ExecuteCommand(new PluginCommand(Command.StopSound, VoiceManager.ServerUniqueIdentifier, new Sound(handle)));
+            this.ExecuteCommand(
+                new PluginCommand(
+                    Command.StopSound,
+                    this.ServerUniqueIdentifier,
+                    new Sound(handle)
+                )
+            );
         }
 
         /// <summary>
         /// Sends the plugin an update on all players
         /// </summary>
-        private static void PlayerStateUpdate()
+        private void PlayerStateUpdate()
         {
             RAGE.Vector3 playerPosition = Player.LocalPlayer.Position;
 
-            foreach (var voiceClient in VoiceManager.VoiceClients)
+            foreach (var voiceClient in this.VoiceClients)
             {
                 RAGE.Vector3 nPlayerPosition = voiceClient.Player.Position;
 
-                VoiceManager.ExecuteCommand(
+                this.ExecuteCommand(
                     new PluginCommand(
                         Command.PlayerStateUpdate,
-                        VoiceManager.ServerUniqueIdentifier,
+                        this.ServerUniqueIdentifier,
                         new PlayerState(
                             voiceClient.TeamSpeakName,
                             nPlayerPosition,
@@ -664,46 +695,25 @@ namespace SaltyClient
                 );
             }
 
-            VoiceManager.ExecuteCommand(
+            this.ExecuteCommand(
                 new PluginCommand(
                     Command.SelfStateUpdate,
-                    VoiceManager.ServerUniqueIdentifier,
-                    new PlayerState(
+                    this.ServerUniqueIdentifier,
+                    new SelfState(
                         playerPosition,
                         RAGE.Game.Cam.GetGameplayCamRot(0).Z
                     )
                 )
             );
         }
-
-        /// <summary>
-        /// Toggles voice range through <see cref="VoiceManager.VoiceRanges"/>
-        /// </summary>
-        public static void ToggleVoiceRange()
-        {
-            int index = Array.IndexOf(SaltyShared.SharedData.VoiceRanges, VoiceManager.VoiceRange);
-
-            if (index < 0)
-            {
-                RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_SetVoiceRange, SaltyShared.SharedData.VoiceRanges[1]);
-            }
-            else if (index + 1 >= SaltyShared.SharedData.VoiceRanges.Length)
-            {
-                RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_SetVoiceRange, SaltyShared.SharedData.VoiceRanges[0]);
-            }
-            else
-            {
-                RAGE.Events.CallRemote(SaltyShared.Event.SaltyChat_SetVoiceRange, SaltyShared.SharedData.VoiceRanges[index + 1]);
-            }
-        }
         #endregion
 
         #region Helper
-        private static bool TryGetVoiceClient(ushort handle, out VoiceClient voiceClient)
+        private bool TryGetVoiceClient(ushort handle, out VoiceClient voiceClient)
         {
-            lock (VoiceManager._voiceClients)
+            lock (this._voiceClients)
             {
-                if (VoiceManager._voiceClients.TryGetValue(handle, out voiceClient))
+                if (this._voiceClients.TryGetValue(handle, out voiceClient))
                     return true;
             }
 
@@ -711,12 +721,12 @@ namespace SaltyClient
             return false;
         }
 
-        private static void ExecuteCommand(PluginCommand pluginCommand)
+        private void ExecuteCommand(PluginCommand pluginCommand)
         {
-            if (!VoiceManager.IsEnabled || !VoiceManager.IsConnected || pluginCommand == default)
+            if (!this.IsEnabled || !this.IsConnected || pluginCommand == default)
                 return;
 
-            VoiceManager._htmlWindow.ExecuteJs($"runCommand('{pluginCommand.Serialize()}')");
+            this._htmlWindow.ExecuteJs($"runCommand('{pluginCommand.Serialize()}')");
         }
         #endregion
     }

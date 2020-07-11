@@ -1,5 +1,4 @@
-﻿// Copyright (c) 2019 saltmine.de - https://github.com/saltminede
-
+﻿using RAGE;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -68,22 +67,6 @@ namespace SaltyClient
     }
     #endregion
 
-    #region PluginState
-    /// <summary>
-    /// Will be received from the WebSocket if e.g. the mic muted/unmuted
-    /// </summary>
-    public class PluginState
-    {
-        public string UpdateBranch { get; set; }
-        public string Version { get; set; }
-        public bool IsConnectedToServer { get; set; }
-        public bool IsReady { get; set; }
-        public bool IsTalking { get; set; }
-        public bool IsMicrophoneMuted { get; set; }
-        public bool IsSoundMuted { get; set; }
-    }
-    #endregion
-
     #region PluginCommand
     public class PluginCommand
     {
@@ -139,28 +122,20 @@ namespace SaltyClient
             return Newtonsoft.Json.JsonConvert.SerializeObject(this);
         }
 
-        public static PluginCommand Deserialize(string json)
+        public bool TryGetPayload<T>(out T payload)
         {
-            return Newtonsoft.Json.JsonConvert.DeserializeObject<PluginCommand>(json);
-        }
-
-        public bool TryGetState(out PluginState pluginState)
-        {
-            if (this.Command == Command.StateUpdate)
+            try
             {
-                try
-                {
-                    pluginState = this.Parameter.ToObject<PluginState>();
+                payload = this.Parameter.ToObject<T>();
 
-                    return true;
-                }
-                catch
-                {
-                    // do nothing
-                }
+                return true;
+            }
+            catch
+            {
+                // do nothing
             }
 
-            pluginState = default;
+            payload = default;
             return false;
         }
         #endregion
@@ -171,20 +146,115 @@ namespace SaltyClient
     }
     #endregion
 
+    #region PluginState
+    /// <summary>
+    /// Will be received from the WebSocket if after starting a new instance
+    /// </summary>
+    public class PluginState
+    {
+        public string Version { get; set; }
+        public int ActiveInstances { get; set; }
+    }
+    #endregion
+
+    #region InstanceState
+    /// <summary>
+    /// Will be received from the WebSocket if the player (dis-)connects to the specified TeamSpeak server or channel
+    /// </summary>
+    public class InstanceState
+    {
+        public bool IsConnectedToServer { get; set; }
+        public bool IsReady { get; set; }
+    }
+    #endregion
+
+    #region SoundState
+    /// <summary>
+    /// Will be received from the WebSocket on every microphone and sound state change
+    /// </summary>
+    public class SoundState
+    {
+        public bool IsMicrophoneMuted { get; set; }
+        public bool IsMicrophoneEnabled { get; set; }
+        public bool IsSoundMuted { get; set; }
+        public bool IsSoundEnabled { get; set; }
+    }
+    #endregion
+
+    #region SelfState
+    /// <summary>
+    /// Used for <see cref="Command.SelfStateUpdate"/>
+    /// </summary>
+    public class SelfState
+    {
+        #region Sub Classes
+        public class EchoEffect
+        {
+            public int Duration { get; set; }
+            public float Rolloff { get; set; }
+            public int Delay { get; set; }
+
+            public EchoEffect(int duration = 100, float rolloff = 0.3f, int delay = 250)
+            {
+                this.Duration = duration;
+                this.Rolloff = rolloff;
+                this.Delay = delay;
+            }
+        }
+        #endregion
+
+        #region Properties
+        public TSVector Position { get; set; }
+        public float Rotation { get; set; }
+        public bool IsAlive { get; set; }
+        public EchoEffect Echo { get; set; }
+        #endregion
+
+        #region CTOR
+        public SelfState(Vector3 position, float rotation, bool echo = false)
+        {
+            this.Position = new TSVector(position.X, position.Y, position.Z);
+            this.Rotation = rotation;
+            this.IsAlive = true;
+
+            if (echo)
+                this.Echo = new EchoEffect();
+        }
+        #endregion
+
+        #region Conditional Property Serialization
+        public bool ShouldSerializeIsAlive() => !this.IsAlive;
+        public bool ShouldSerializeEcho() => this.Echo != null;
+        #endregion
+    }
+    #endregion
+
     #region PlayerState
     /// <summary>
-    /// Used for <see cref="Command.SelfStateUpdate"/> and <see cref="Command.PlayerStateUpdate"/>
+    /// Used for <see cref="Command.PlayerStateUpdate"/>
     /// </summary>
     public class PlayerState
     {
+        #region Sub Classes
+        public class MuffleEffect
+        {
+            public int Intensity { get; set; }
+
+            public MuffleEffect(int intensity)
+            {
+                this.Intensity = intensity;
+            }
+        }
+        #endregion
+
         #region Properties
         public string Name { get; set; }
         public TSVector Position { get; set; }
-        public float? Rotation { get; set; }
-        public float? VoiceRange { get; set; }
+        public float VoiceRange { get; set; }
         public bool IsAlive { get; set; }
         public float? VolumeOverride { get; set; }
         public bool DistanceCulled { get; set; }
+        public MuffleEffect Muffle { get; set; }
         #endregion
 
         #region CTOR
@@ -195,18 +265,6 @@ namespace SaltyClient
         public PlayerState(string name)
         {
             this.Name = name;
-            this.Position = TSVector.Zero;
-        }
-
-        /// <summary>
-        /// Used for <see cref="Command.SelfStateUpdate"/>
-        /// </summary>
-        /// <param name="position"></param>
-        /// <param name="rotation"></param>
-        public PlayerState(RAGE.Vector3 position, float rotation)
-        {
-            this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
-            this.Rotation = rotation;
         }
 
         /// <summary>
@@ -216,12 +274,18 @@ namespace SaltyClient
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
         /// <param name="isAlive"></param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isAlive)
+        /// <param name="distanceCulled"></param>
+        /// <param name="muffleIntensity"></param>
+        public PlayerState(string name, Vector3 position, float voiceRange, bool isAlive, bool distanceCulled = false, int? muffleIntensity = null)
         {
             this.Name = name;
-            this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
+            this.Position = new TSVector(position.X, position.Y, position.Z);
             this.VoiceRange = voiceRange;
             this.IsAlive = isAlive;
+            this.DistanceCulled = distanceCulled;
+
+            if (muffleIntensity.HasValue)
+                this.Muffle = new MuffleEffect(muffleIntensity.Value);
         }
 
         /// <summary>
@@ -231,16 +295,16 @@ namespace SaltyClient
         /// <param name="position"></param>
         /// <param name="voiceRange"></param>
         /// <param name="isAlive"></param>
-        /// <param name="volumeOverride">Overrides the volume (phone, radio and proximity) - from 0 (0%) to 1.5 (150%)</param>
-        public PlayerState(string name, RAGE.Vector3 position, float voiceRange, bool isAlive, float volumeOverride)
+        /// <param name="volumeOverride">Overrides the volume (phone, radio and proximity) - from 0 (0%) to 1.6 (160%)</param>
+        public PlayerState(string name, Vector3 position, float voiceRange, bool isAlive, float volumeOverride)
         {
             this.Name = name;
-            this.Position = new TSVector(position); // Needs to be converted to "SaltyChat.TSVector" due to a bug - client will crash if "RAGE.Vector3" will be serialized with "Newtonsoft.Json.Linq.JObject.FromObject()"
+            this.Position = new TSVector(position.X, position.Y, position.Z);
             this.VoiceRange = voiceRange;
             this.IsAlive = isAlive;
 
-            if (volumeOverride > 1.5f)
-                this.VolumeOverride = 1.5f;
+            if (volumeOverride > 1.6f)
+                this.VolumeOverride = 1.6f;
             else if (volumeOverride < 0f)
                 this.VolumeOverride = 0f;
             else
@@ -251,16 +315,39 @@ namespace SaltyClient
         #region Conditional Property Serialization
         public bool ShouldSerializeName() => !String.IsNullOrEmpty(this.Name);
 
-        public bool ShouldSerializeRotation() => this.Rotation.HasValue;
-
-        public bool ShouldSerializeVoiceRange() => this.VoiceRange.HasValue;
-
-        public bool ShouldSerializeIsAlive() => this.IsAlive;
+        public bool ShouldSerializeIsAlive() => !this.IsAlive;
 
         public bool ShouldSerializeVolumeOverride() => this.VolumeOverride.HasValue;
 
         public bool ShouldSerializeDistanceCulled() => this.DistanceCulled;
+
+        public bool ShouldSerializeMuffle() => this.Muffle != null;
         #endregion
+    }
+    #endregion
+
+    #region BulkUpdate
+    /// <summary>
+    /// Used for <see cref="Command.BulkUpdate"/>
+    /// </summary>
+    public class BulkUpdate
+    {
+        public ICollection<PlayerState> PlayerStates { get; set; }
+        public SelfState SelfState { get; set; }
+
+        public BulkUpdate(ICollection<PlayerState> playerStates, SelfState selfState)
+        {
+            this.PlayerStates = playerStates;
+            this.SelfState = selfState;
+        }
+    }
+    #endregion
+
+    #region TalkState
+    public class TalkState
+    {
+        public string Name { get; set; }
+        public bool IsTalking { get; set; }
     }
     #endregion
 
@@ -481,80 +568,36 @@ namespace SaltyClient
     #region Command
     public enum Command
     {
-        /// <summary>
-        /// Will be sent by the WebSocket when resetting the instance
-        /// </summary>
-        Reset = -1,
+        // Plugin
+        PluginState = 0,
 
-        /// <summary>
-        /// Use <see cref="GameInstance"/> as parameter
-        /// </summary>
-        Initiate = 0,
+        // Instance
+        Initiate = 1,
+        Reset = 2,
+        Ping = 3,
+        Pong = 4,
+        InstanceState = 5,
+        SoundState = 6,
+        SelfStateUpdate = 7,
+        PlayerStateUpdate = 8,
+        BulkUpdate = 9,
+        RemovePlayer = 10,
+        TalkState = 11,
+        PlaySound = 18,
+        StopSound = 19,
 
-        /// <summary>
-        /// Will be sent by the WebSocket and should be answered with a <see cref="Command.Pong"/>
-        /// </summary>
-        Ping = 1,
+        // Phone
+        PhoneCommunicationUpdate = 20,
+        StopPhoneCommunication = 21,
 
-        /// <summary>
-        /// Answer to a <see cref="Command.Ping"/> request
-        /// </summary>
-        Pong = 2,
+        // Radio
+        RadioCommunicationUpdate = 30,
+        StopRadioCommunication = 31,
+        RadioTowerUpdate = 32,
 
-        /// <summary>
-        /// Will be sent by the WebSocket on state changes (e.g. mic muted/unmuted) and received by <see cref="VoiceManager.OnPluginMessage(object[])"/> - uses <see cref="PluginState"/> as parameter
-        /// </summary>
-        StateUpdate = 3,
-
-        /// <summary>
-        /// Use <see cref="PlayerState"/> as parameter
-        /// </summary>
-        SelfStateUpdate = 4,
-
-        /// <summary>
-        /// Use <see cref="PlayerState"/> as parameter
-        /// </summary>
-        PlayerStateUpdate = 5,
-
-        /// <summary>
-        /// Use <see cref="PlayerState"/> as parameter
-        /// </summary>
-        RemovePlayer = 6,
-
-        /// <summary>
-        /// Use <see cref="PhoneCommunication"/> as parameter
-        /// </summary>
-        PhoneCommunicationUpdate = 7,
-
-        /// <summary>
-        /// Use <see cref="PhoneCommunication"/> as parameter
-        /// </summary>
-        StopPhoneCommunication = 8,
-
-        /// <summary>
-        /// Use <see cref="RadioTower"/> as parameter
-        /// </summary>
-        RadioTowerUpdate = 9,
-
-        /// <summary>
-        /// Use <see cref="RadioCommunication"/> as parameter
-        /// </summary>
-        RadioCommunicationUpdate = 10,
-
-        /// <summary>
-        /// Use <see cref="RadioCommunication"/> as parameter
-        /// </summary>
-        StopRadioCommunication = 11,
-
-        /// <summary>
-        /// Use <see cref="Sound"/> as parameter
-        /// </summary>
-        PlaySound = 12,
-
-        /// <summary>
-        /// Use <see cref="Sound"/> as parameter
-        /// </summary>
-        StopSound = 13
+        // Megaphone
+        MegaphoneCommunicationUpdate = 40,
+        StopMegaphoneCommunication = 41,
     }
     #endregion
 
@@ -568,24 +611,6 @@ namespace SaltyClient
         ChannelNotAvailable = 4,
         NameNotAvailable = 5,
         InvalidValue = 6
-    }
-    #endregion
-
-    #region UpdateBranch
-    internal enum UpdateBranch
-    {
-        Stable = 0,
-        Testing = 1,
-        PreBuild = 2
-    }
-    #endregion
-
-    #region SoundEventArgs
-    public class SoundEventArgs : EventArgs
-    {
-        public bool IsTalking => VoiceManager.IsTalking;
-        public bool IsMicrophoneMuted => VoiceManager.IsMicrophoneMuted;
-        public bool IsSoundMuted => VoiceManager.IsSoundMuted;
     }
     #endregion
 
