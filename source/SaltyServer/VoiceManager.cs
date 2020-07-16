@@ -14,7 +14,7 @@ namespace SaltyServer
         public string SoundPack { get; private set; }
         public string IngameChannel { get; private set; }
         public string IngameChannelPassword { get; private set; }
-        public ulong[] SwissChannels { get; private set; }
+        public ulong[] SwissChannels { get; private set; } = new ulong[0];
 
         public GTANetworkAPI.Vector3[] RadioTowers { get; private set; } = new GTANetworkAPI.Vector3[]
         {
@@ -47,7 +47,13 @@ namespace SaltyServer
             this.SoundPack = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SoundPack");
             this.IngameChannel = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "IngameChannel");
             this.IngameChannelPassword = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "IngameChannelPassword");
-            this.SwissChannels = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SwissChannelIds").Split(',').Select(s => UInt64.Parse(s)).ToArray();
+
+            string swissChannelIds = GTANetworkAPI.NAPI.Resource.GetSetting<string>(this, "SwissChannelIds");
+
+            if (!String.IsNullOrEmpty(swissChannelIds))
+            {
+                this.SwissChannels = swissChannelIds.Split(',').Select(s => UInt64.Parse(s.Trim())).ToArray();
+            }
         }
 
         [GTANetworkAPI.ServerEvent(GTANetworkAPI.Event.PlayerConnected)]
