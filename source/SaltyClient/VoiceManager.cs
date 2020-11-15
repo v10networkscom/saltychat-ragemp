@@ -472,7 +472,7 @@ namespace SaltyClient
                     }
                 case Command.SoundState:
                     {
-                        if (!pluginCommand.TryGetPayload(out SoundState soundState))
+                        if (pluginCommand.TryGetPayload(out SoundState soundState))
                         {
                             if (soundState.IsMicrophoneMuted != this.IsMicrophoneMuted)
                             {
