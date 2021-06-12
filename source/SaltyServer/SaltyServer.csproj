@@ -20,10 +20,10 @@
 
   <ItemGroup>
     <Reference Include="Bootstrapper">
-      <HintPath>..\..\..\..\..\Program Files (x86)\RAGEMP\server-files\dotnet\runtime\Bootstrapper.dll</HintPath>
+      <HintPath>C:\RAGEMP\server-files\dotnet\runtime\Bootstrapper.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\..\..\..\Program Files (x86)\RAGEMP\server-files\dotnet\runtime\Newtonsoft.Json.dll</HintPath>
+      <HintPath>C:\RAGEMP\server-files\dotnet\runtime\Newtonsoft.Json.dll</HintPath>
     </Reference>
   </ItemGroup>
 
