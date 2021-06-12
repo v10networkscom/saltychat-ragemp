@@ -18,10 +18,10 @@
 
   <ItemGroup>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>C:\Program Files (x86)\RAGEMP\dotnet\Newtonsoft.Json.dll</HintPath>
+      <HintPath>C:\RAGEMP\dotnet\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="rage-sharp">
-      <HintPath>C:\Program Files (x86)\RAGEMP\dotnet\rage-sharp.dll</HintPath>
+      <HintPath>C:\RAGEMP\dotnet\rage-sharp.dll</HintPath>
     </Reference>
   </ItemGroup>
 
